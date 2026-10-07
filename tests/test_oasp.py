@@ -81,3 +81,21 @@ def test_ocsf_export_keeps_chain_evidence():
     deny = events[-1]
     assert deny["status"] == "Failure" and deny["unmapped"]["hash"] == node.gate.audit.entries[-1]["hash"]
     assert AuditLog.verify_export(node.gate.audit.export()).ok
+
+
+def test_second_witness_on_the_supervisor_path():
+    node = build_oasp_node(observer=["sentry", "obs-main"])
+    d = node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY))
+    assert d.reasons == ["observer.missing"]  # safety lane absent → fail closed
+    node.supervisor.add_witness(lambda rh, action, params: node.observer.assess(rh, action, params))
+    d = node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY))
+    assert d.allowed
+
+
+def test_high_authority_rules_can_demand_both_witnesses():
+    node = build_oasp_node(high_authority_observer=["sentry", "obs-main"])
+    assert node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY)).allowed
+    large = {**PAY, "amount": 25000}
+    assert node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", large)).reasons == ["observer.missing"]
+    node.supervisor.add_witness(lambda rh, action, params: node.observer.assess(rh, action, params))
+    assert node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", large)).status == 202

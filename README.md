@@ -27,7 +27,7 @@ to live *below* the model, because anything above it can be stripped out:
    *supervisor middleware*, OpenShell `network_policies` derived from the signed gate
    policy, NVIDIA Sentry (BlueField-4) as a Layer 3 witness and as the quarantine
    actuator, and an OCSF-shaped export of the audit trail (`docs/NVIDIA.md`);
-7. an **attack harness**: 61 attacks across every layer plus 8 baselines, each run
+7. an **attack harness**: 66 attacks across every layer plus 10 baselines, each run
    against a freshly built node, reported with the reason code the stack produced.
 
 ```
@@ -54,13 +54,16 @@ It is built to run on **NVIDIA's Open Agent Safety Platform** (OpenShell + Sentr
 BlueField-4, announced 28 Sep 2026) rather than beside it: OpenShell owns the
 sandbox, the network policy and the credentials; Sentry owns the path to the model
 and the kill switch; this repo adds attestation of the compute, per-action grants
-with witnesses and tickets, and a tamper-evident record. See [`docs/NVIDIA.md`](docs/NVIDIA.md).
+with witnesses and tickets, and a tamper-evident record. On that path Sentry's
+verdict is required for every observer-gated action, the safety lane's observer is
+an optional second witness, and the highest-authority actions can demand both.
+See [`docs/NVIDIA.md`](docs/NVIDIA.md).
 
 ## Run it
 
 ```bash
 git clone https://github.com/YobieBenjamin/hardware && cd hardware
-./run.sh          # venv, install, 35 tests, 61-attack sweep → results/report.md  (under a minute)
+./run.sh          # venv, install, 37 tests, 66-attack sweep → results/report.md  (under a minute)
 ./run.sh demo     # the above, then a narrated end-to-end flow, including the NVIDIA OASP path
 ```
 
@@ -94,12 +97,13 @@ every legitimate baseline goes through.
 | L2 provenance interface | 5/5 | missing assertion, `tampered` verdict, an `exact` assertion for a different body, forged registry signature |
 | Endpoints / tickets | 6/6 | no ticket, replayed ticket, parameters or action swapped after issue, forged ticket, expired ticket |
 | Audit trail | 8/8 | edited record, deleted or reordered entries, truncation past a checkpoint, forged checkpoint, rewritten history (consistency proof fails), inclusion proof for a forged leaf |
-| NVIDIA OASP path | 8/8 | unattested or stale-token sandbox; Sentry drift verdict → deny and quarantine; unverified agent identity; repeated probing trips drift quarantine; ticket shared across sandboxes; weight export routed through the supervisor; an unrouted host passes to OpenShell's policy but the consequential endpoint still refuses without a ticket |
+| NVIDIA OASP path | 13/13 | unattested or stale-token sandbox; Sentry drift verdict → deny and quarantine; unverified agent identity; repeated probing trips drift quarantine; ticket shared across sandboxes; weight export routed through the supervisor; an unrouted host passes to OpenShell's policy but the consequential endpoint still refuses without a ticket; with two witnesses required, one high verdict from either side denies, a forged second witness denies, an absent second witness denies, and a high-authority action with only one witness is refused |
 
-The 8 baselines (attest, small payment, large payment held → approved,
+The 10 baselines (attest, small payment, large payment held → approved,
 provenance-backed mail, allow-listed HTTP, audit proofs, a supervised action on the
-OpenShell path, and the derived OpenShell policy matching the gate's grants) all
-succeed, so the gate is not passing by refusing everything.
+OpenShell path, the derived OpenShell policy matching the gate's grants, both
+witnesses agreeing, and the recommended high-authority configuration) all succeed,
+so the gate is not passing by refusing everything.
 
 ## Layout
 
@@ -114,9 +118,9 @@ succeed, so the gate is not passing by refusing everything.
 | `hardware_ref/oasp.py` | NVIDIA OASP | `SupervisorMiddleware` (gate on OpenShell's request path), `to_openshell_network_policy`, `SentryObserver`, `SentryActuator`, `to_ocsf` |
 | `hardware_ref/audit.py` | audit | signed hash chain, RFC 6962 Merkle root, checkpoints, inclusion and consistency proofs, offline verifier |
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
-| `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (53 attacks + 6 baselines) and the sweep runner / report writer |
+| `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (66 attacks + 10 baselines) and the sweep runner / report writer |
 | `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
-| `tests/` | — | 35 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path and the full sweep |
+| `tests/` | — | 37 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path and the full sweep |
 
 ## Documentation
 

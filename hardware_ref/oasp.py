@@ -274,6 +274,7 @@ class SupervisorMiddleware:
         self._denials: dict[str, collections.deque] = collections.defaultdict(collections.deque)
         self.telemetry: Callable[[OutboundRequest], dict] = lambda req: {"drift_score": 0.0, "identity_verified": True}
         self.provenance: Callable[[OutboundRequest], dict | None] = lambda req: None
+        self.witnesses: list[Callable[[str, str, dict], dict]] = []  # extra Layer 3 producers (the safety repo's observer)
         self._seq = 0
 
     # -- configuration -----------------------------------------------------------------
@@ -287,6 +288,16 @@ class SupervisorMiddleware:
 
     def refresh_token(self, sandbox_id: str, token: dict | None) -> None:
         self._sandboxes[sandbox_id]["token"] = token
+
+    def add_witness(self, producer: Callable[[str, str, dict], dict]) -> None:
+        """Register a second Layer 3 witness. Called with (request_hash, action, params); returns a signed assertion.
+
+        Sentry is the witness the NVIDIA path always carries. A rule that names
+        several observers (``"observer": ["sentry", "obs-main"]``) needs every one
+        of them to pass, so an attacker has to compromise every witness key, not
+        one. Use it for the highest-authority actions; see ``docs/NVIDIA.md``.
+        """
+        self.witnesses.append(producer)
 
     def _route(self, req: OutboundRequest) -> Route | None:
         for r in self.routes:
@@ -323,6 +334,8 @@ class SupervisorMiddleware:
         telemetry = self.telemetry(req)
         if self.sentry is not None:
             gate_req["assertions"].append(self.sentry.assess(rh, telemetry))
+        for witness in self.witnesses:
+            gate_req["assertions"].append(witness(rh, route.action, params))
         prov = self.provenance(req)
         if prov is not None:
             gate_req["assertions"].append(prov)

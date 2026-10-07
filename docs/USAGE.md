@@ -3,7 +3,7 @@
 ## One command
 
 ```bash
-./run.sh          # venv → install → pytest (28 tests) → sweep (53 attacks + 6 baselines) → results/report.md
+./run.sh          # venv → install → pytest (37 tests) → sweep (66 attacks + 10 baselines) → results/report.md
 ./run.sh demo     # the same, then `hwctl demo`
 ./reproduce.sh    # run.sh, then git diff of results/ against the committed report
 ```
@@ -98,8 +98,15 @@ events = export_ocsf(node.gate.audit)                            # OCSF-shaped, 
 `SupervisorMiddleware.add_route(Route(method, host, path, action, params))`
 maps outbound requests to consequential actions; `bind_sandbox(id, measurement,
 token)` and `refresh_token` keep the sandbox→host attestation current;
-`DriftPolicy(quarantine_risk, max_denials, window_s)` sets when a denial
-becomes a quarantine.
+`add_witness(producer)` puts a second Layer 3 witness (the safety repo's
+observer) on the path; `DriftPolicy(quarantine_risk, max_denials, window_s)`
+sets when a denial becomes a quarantine.
+
+Witness configuration lives in the policy: `build_oasp_node(observer="sentry")`
+is the default (Sentry required, nothing else), `observer=["sentry", "obs-main"]`
+requires both for every observer-gated action, and
+`high_authority_observer=["sentry", "obs-main"]` requires both only for
+`human`-mode rules — the recommended shape (`docs/NVIDIA.md`).
 
 ## Policy
 

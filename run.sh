@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One command: create a venv, install, self-validate (pytest), run the attack sweep, write the report.
 #
-#   ./run.sh              # venv, install, 28 tests, 53-attack sweep → results/report.md   (well under a minute)
+#   ./run.sh              # venv, install, 37 tests, 66-attack sweep → results/report.md   (well under a minute)
 #   ./run.sh demo         # the above, then the narrated end-to-end flow
 #
 # Requires Python >= 3.11; the newest python3.x on PATH is used unless PYTHON is set. No GPU, no network

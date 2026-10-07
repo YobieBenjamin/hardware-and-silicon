@@ -40,14 +40,18 @@ API_HOST = "api.internal.example.com"
 MAIL_HOST = "mail.internal.example.com"
 
 
-def default_policy(measurement: str, observer: str | list[str] = "obs-main") -> dict:
+def default_policy(measurement: str, observer: str | list[str] = "obs-main", high_authority_observer: str | list[str] | None = None) -> dict:
     """The capability table for the golden workload. Everything else is denied by construction.
 
     ``observer`` names the Layer 3 witness the observer-gated rules require:
     ``"obs-main"`` (the safety repo's observer), ``"sentry"`` (NVIDIA Sentry via
-    the OASP adapter) or both. Each rule that reaches the network carries an
-    ``egress`` block, from which the OpenShell network policy is derived.
+    the OASP adapter) or a list of both (every listed witness must pass).
+    ``high_authority_observer`` overrides it for ``human``-mode rules — the
+    highest-authority actions — so those can demand both witnesses while the
+    rest run on one. Each rule that reaches the network carries an ``egress``
+    block, from which the OpenShell network policy is derived.
     """
+    high = high_authority_observer if high_authority_observer is not None else observer
     return {
         "default": "deny",
         **DEFAULT_POLICY_ARGS,
@@ -66,7 +70,7 @@ def default_policy(measurement: str, observer: str | list[str] = "obs-main") -> 
                 "workload": measurement,
                 "action": "payments.transfer",
                 "constraints": {"amount": {"type": "number", "max": 50000, "min": 1000.01}, "currency": {"in": ["USD"]}, "destination": {"regex": r"acct-[0-9]{6}"}},
-                "requirement": {"mode": "human", "observer": observer, "max_risk": 0.3},
+                "requirement": {"mode": "human", "observer": high, "max_risk": 0.3},
                 "egress": {"host": API_HOST, "port": 443, "protocol": "rest", "access": "read-write"},
             },
             {
@@ -153,8 +157,9 @@ class Node:
         return self.gate.approve(approval)
 
 
-def build_node(*, clock: SimClock | None = None, rollback_protection: bool = True, observer: str | list[str] = "obs-main") -> Node:
-    """Build a node. ``observer="sentry"`` makes the policy require NVIDIA Sentry's verdict (the OASP path)."""
+def build_node(*, clock: SimClock | None = None, rollback_protection: bool = True, observer: str | list[str] = "obs-main", high_authority_observer: str | list[str] | None = None) -> Node:
+    """Build a node. ``observer="sentry"`` makes the policy require NVIDIA Sentry's verdict (the OASP path);
+    ``high_authority_observer=["sentry", "obs-main"]`` makes human-held actions demand both witnesses."""
     clock = clock or SimClock()
     cpu_vendor, gpu_vendor = ManufacturerCA("cpu-vendor"), ManufacturerCA("gpu-vendor")
     cpu = SiliconRoot("cpu-tee", "CPU-0001", cpu_vendor, rollback_protection=rollback_protection)
@@ -183,7 +188,7 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
         registries={"wm-registry": registry.public},
         approvers={"ops-lead": approver_key.public},
     )
-    signed_policy = governance.policy(default_policy(measurement, observer))
+    signed_policy = governance.policy(default_policy(measurement, observer, high_authority_observer))
     gate.load_policy(signed_policy)
 
     endpoints = EndpointRegistry(gate.public, clock, gate.audit)
@@ -198,9 +203,15 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
     return Node(clock, cpu_vendor, gpu_vendor, cpu, gpu, governance, verifier, obs_main, registry, approver_key, gate, endpoints, measurement, signed_policy, signed_reference, sentry, actuator, supervisor)
 
 
-def build_oasp_node(*, clock: SimClock | None = None) -> Node:
-    """A node on the NVIDIA path: policy requires Sentry's verdict, sandbox bound to an attested host."""
-    node = build_node(clock=clock, observer="sentry")
+def build_oasp_node(*, clock: SimClock | None = None, observer: str | list[str] = "sentry", high_authority_observer: str | list[str] | None = None, second_witness: bool = False) -> Node:
+    """A node on the NVIDIA path: policy requires Sentry's verdict, sandbox bound to an attested host.
+
+    ``second_witness=True`` also puts the safety repo's observer (``obs-main``, stubbed
+    here) on the supervisor path, so rules that list both witnesses can be satisfied.
+    """
+    node = build_node(clock=clock, observer=observer, high_authority_observer=high_authority_observer)
     res = node.attest()
     node.supervisor.bind_sandbox("sandbox-a", node.measurement, res.token if res.accepted else None)
+    if second_witness:
+        node.supervisor.add_witness(lambda rh, action, params: node.observer.assess(rh, action, params))
     return node

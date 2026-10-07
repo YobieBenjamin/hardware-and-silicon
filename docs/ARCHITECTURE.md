@@ -148,6 +148,12 @@ Three independent mechanisms, so an attacker has to defeat all three:
 - **Tickets are bearer tokens, deliberately.** They are bound to a request hash
   and single-use, so bearer-ness buys nothing to a thief beyond one already
   authorised action, once, within a minute.
+- **Witnesses scale with authority.** One required witness (Sentry on the
+  NVIDIA path, the safety observer elsewhere) for ordinary observer-gated
+  actions; both for the human-held, highest-authority ones. AND semantics across
+  witnesses means compromising one key buys nothing. Requiring both everywhere
+  would couple the lanes and double the witness cost without changing what the
+  catalogue can show.
 - **Quarantine is cheap to trigger and deliberate to lift.** A single verdict at
   or above `quarantine_risk`, or `max_denials` in a window, stops a sandbox cold;
   only a named approver releases it. False positives cost one sandbox's

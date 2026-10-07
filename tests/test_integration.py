@@ -26,7 +26,7 @@ def test_sweep_blocks_every_attack_and_allows_every_baseline(tmp_path):
     failures = [o for o in summary["outcomes"] if not o["passed"]]
     assert failures == [], failures
     assert summary["attacks_blocked"] == summary["attacks"] >= 50
-    assert summary["baselines_allowed"] == summary["baselines"] == 8
+    assert summary["baselines_allowed"] == summary["baselines"] == 10
     assert (tmp_path / "report.md").exists() and (tmp_path / "report.json").exists()
 
 

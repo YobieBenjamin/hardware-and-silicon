@@ -1,8 +1,8 @@
 {
- "attacks": 61,
- "attacks_blocked": 61,
- "baselines": 8,
- "baselines_allowed": 8,
+ "attacks": 66,
+ "attacks_blocked": 66,
+ "baselines": 10,
+ "baselines_allowed": 10,
  "by_layer": {
   "AU": {
    "passed": 8,
@@ -33,8 +33,8 @@
    "total": 3
   },
   "NV": {
-   "passed": 10,
-   "total": 10
+   "passed": 17,
+   "total": 17
   }
  },
  "machine": "arm64",
@@ -47,7 +47,7 @@
    "name": "baseline.attest",
    "observed": "token issued",
    "passed": true,
-   "seconds": 0.0019143340177834034
+   "seconds": 0.0018524579936638474
   },
   {
    "blocked": false,
@@ -57,7 +57,7 @@
    "name": "baseline.pay_small",
    "observed": "transfer 250 USD to acct-123456",
    "passed": true,
-   "seconds": 0.0015496249834541231
+   "seconds": 0.0013076660106889904
   },
   {
    "blocked": false,
@@ -67,7 +67,7 @@
    "name": "baseline.pay_large_hold_approve",
    "observed": "held \u2192 approved \u2192 transfer 25000 USD to acct-654321",
    "passed": true,
-   "seconds": 0.0014527080056723207
+   "seconds": 0.0013850419782102108
   },
   {
    "blocked": false,
@@ -77,7 +77,7 @@
    "name": "baseline.mail_with_provenance",
    "observed": "send mail to cfo@example.com (38 chars)",
    "passed": true,
-   "seconds": 0.0014027919969521463
+   "seconds": 0.00171312500606291
   },
   {
    "blocked": false,
@@ -87,7 +87,7 @@
    "name": "baseline.http_auto",
    "observed": "POST https://api.internal.example.com/v1/ping",
    "passed": true,
-   "seconds": 0.001142083026934415
+   "seconds": 0.001309582992689684
   },
   {
    "blocked": false,
@@ -97,7 +97,7 @@
    "name": "baseline.audit_verifies",
    "observed": "5 entries, 2 checkpoints, proofs ok",
    "passed": true,
-   "seconds": 0.0017585000023245811
+   "seconds": 0.0021432920184452087
   },
   {
    "blocked": true,
@@ -107,7 +107,7 @@
    "name": "L0.firmware_tamper",
    "observed": "rejected: cpu.firmware.unknown",
    "passed": true,
-   "seconds": 0.0009819169936235994
+   "seconds": 0.0010769999935291708
   },
   {
    "blocked": true,
@@ -117,7 +117,7 @@
    "name": "L0.lying_firmware",
    "observed": "rejected: cpu.firmware.unknown, cpu.report.registers_vs_cert",
    "passed": true,
-   "seconds": 0.000971875007962808
+   "seconds": 0.0011562500149011612
   },
   {
    "blocked": true,
@@ -127,7 +127,7 @@
    "name": "L0.rollback_fused",
    "observed": "chip refused boot: cpu-tee: svn 1 < fused 3",
    "passed": true,
-   "seconds": 0.0007693340012338012
+   "seconds": 0.0005947090103290975
   },
   {
    "blocked": true,
@@ -137,7 +137,7 @@
    "name": "L0.rollback_unfused",
    "observed": "rejected: cpu.firmware.unknown, cpu.svn.below_minimum",
    "passed": true,
-   "seconds": 0.0018776670040097088
+   "seconds": 0.0014628339849878103
   },
   {
    "blocked": true,
@@ -147,7 +147,7 @@
    "name": "L0.cloned_device",
    "observed": "rejected: cpu.device_cert.untrusted",
    "passed": true,
-   "seconds": 0.0010253330110572278
+   "seconds": 0.0008465000137221068
   },
   {
    "blocked": true,
@@ -157,7 +157,7 @@
    "name": "L0.revoked_device",
    "observed": "rejected: cpu.device.revoked",
    "passed": true,
-   "seconds": 0.0011302499915473163
+   "seconds": 0.001174125005491078
   },
   {
    "blocked": true,
@@ -167,7 +167,7 @@
    "name": "L0.nonce_replay",
    "observed": "rejected: nonce.replayed",
    "passed": true,
-   "seconds": 0.0013749159988947213
+   "seconds": 0.0015247080009430647
   },
   {
    "blocked": true,
@@ -177,7 +177,7 @@
    "name": "L0.nonce_expired",
    "observed": "rejected: nonce.expired",
    "passed": true,
-   "seconds": 0.0010042919893749058
+   "seconds": 0.000937082979362458
   },
   {
    "blocked": true,
@@ -187,7 +187,7 @@
    "name": "L0.nonce_foreign",
    "observed": "rejected: nonce.unknown",
    "passed": true,
-   "seconds": 0.000985582999419421
+   "seconds": 0.0010170000023208559
   },
   {
    "blocked": true,
@@ -197,7 +197,7 @@
    "name": "L0.gpu_swap",
    "observed": "rejected: binding.gpu_not_bound_to_cpu",
    "passed": true,
-   "seconds": 0.0011198340216651559
+   "seconds": 0.001106542011257261
   },
   {
    "blocked": true,
@@ -207,7 +207,7 @@
    "name": "L5.reference_values_forged",
    "observed": "rejected: reference values: signature invalid or signer not trusted",
    "passed": true,
-   "seconds": 0.0006870419892948121
+   "seconds": 0.0006845829775556922
   },
   {
    "blocked": true,
@@ -217,7 +217,7 @@
    "name": "L5.policy_forged",
    "observed": "deny: policy.no_rule",
    "passed": true,
-   "seconds": 0.001199916994664818
+   "seconds": 0.0012742920080199838
   },
   {
    "blocked": true,
@@ -227,7 +227,7 @@
    "name": "L5.policy_default_allow",
    "observed": "rejected: only default=deny policies are accepted",
    "passed": true,
-   "seconds": 0.0007184160058386624
+   "seconds": 0.0007214589859358966
   },
   {
    "blocked": true,
@@ -237,7 +237,7 @@
    "name": "L4.token_missing",
    "observed": "deny: attestation.missing",
    "passed": true,
-   "seconds": 0.0007522499945480376
+   "seconds": 0.000675374991260469
   },
   {
    "blocked": true,
@@ -247,7 +247,7 @@
    "name": "L4.token_forged",
    "observed": "deny: attestation.signature",
    "passed": true,
-   "seconds": 0.001353750005364418
+   "seconds": 0.001123541995184496
   },
   {
    "blocked": true,
@@ -257,7 +257,7 @@
    "name": "L4.token_expired",
    "observed": "deny: attestation.expired",
    "passed": true,
-   "seconds": 0.0009895419934764504
+   "seconds": 0.0011446250136941671
   },
   {
    "blocked": true,
@@ -267,7 +267,7 @@
    "name": "L4.token_wrong_workload",
    "observed": "deny: attestation.measurement_mismatch",
    "passed": true,
-   "seconds": 0.0010064170055557042
+   "seconds": 0.0011472089972812682
   },
   {
    "blocked": true,
@@ -277,7 +277,7 @@
    "name": "L4.no_capability",
    "observed": "deny: policy.no_rule",
    "passed": true,
-   "seconds": 0.001023583026835695
+   "seconds": 0.0011320830089971423
   },
   {
    "blocked": true,
@@ -287,7 +287,7 @@
    "name": "L4.weights_exfiltration",
    "observed": "deny: policy.no_rule",
    "passed": true,
-   "seconds": 0.0010230000189039856
+   "seconds": 0.0011852500028908253
   },
   {
    "blocked": true,
@@ -297,7 +297,7 @@
    "name": "L4.amount_over_limit",
    "observed": "deny: constraint.amount.max",
    "passed": true,
-   "seconds": 0.0010272499930579215
+   "seconds": 0.001108249998651445
   },
   {
    "blocked": true,
@@ -307,7 +307,7 @@
    "name": "L4.currency_not_allowed",
    "observed": "deny: constraint.currency.not_allowed",
    "passed": true,
-   "seconds": 0.0010262499854434282
+   "seconds": 0.0011252500116825104
   },
   {
    "blocked": true,
@@ -317,7 +317,7 @@
    "name": "L4.destination_pattern",
    "observed": "deny: constraint.destination.pattern",
    "passed": true,
-   "seconds": 0.0010696660028770566
+   "seconds": 0.0011259579914622009
   },
   {
    "blocked": true,
@@ -327,7 +327,7 @@
    "name": "L4.type_confusion",
    "observed": "deny: constraint.amount.type",
    "passed": true,
-   "seconds": 0.0010529590072110295
+   "seconds": 0.0011525420122779906
   },
   {
    "blocked": true,
@@ -337,7 +337,7 @@
    "name": "L4.url_outside_allowlist",
    "observed": "deny: constraint.url.pattern",
    "passed": true,
-   "seconds": 0.0013890830159652978
+   "seconds": 0.0010737919947132468
   },
   {
    "blocked": true,
@@ -347,7 +347,7 @@
    "name": "L4.rate_limit_burst",
    "observed": "deny: rate.limit",
    "passed": true,
-   "seconds": 0.0021542909962590784
+   "seconds": 0.001918000023579225
   },
   {
    "blocked": true,
@@ -357,7 +357,7 @@
    "name": "L4.request_replay",
    "observed": "deny: request.replayed",
    "passed": true,
-   "seconds": 0.0012344580027274787
+   "seconds": 0.001519541983725503
   },
   {
    "blocked": true,
@@ -367,7 +367,7 @@
    "name": "L3.observer_missing",
    "observed": "deny: observer.missing",
    "passed": true,
-   "seconds": 0.001083334005670622
+   "seconds": 0.0011180000146850944
   },
   {
    "blocked": true,
@@ -377,7 +377,7 @@
    "name": "L3.observer_forged",
    "observed": "deny: observer.signature",
    "passed": true,
-   "seconds": 0.0011517920065671206
+   "seconds": 0.001190749986562878
   },
   {
    "blocked": true,
@@ -387,7 +387,7 @@
    "name": "L3.observer_stale",
    "observed": "deny: observer.stale",
    "passed": true,
-   "seconds": 0.0010131250019185245
+   "seconds": 0.001168457994936034
   },
   {
    "blocked": true,
@@ -397,7 +397,7 @@
    "name": "L3.observer_subject_swap",
    "observed": "deny: observer.subject_mismatch",
    "passed": true,
-   "seconds": 0.001068874989869073
+   "seconds": 0.001128625008277595
   },
   {
    "blocked": true,
@@ -407,7 +407,7 @@
    "name": "L3.observer_high_risk",
    "observed": "deny: observer.risk_above_threshold",
    "passed": true,
-   "seconds": 0.0010705419990699738
+   "seconds": 0.001098209002520889
   },
   {
    "blocked": true,
@@ -417,7 +417,7 @@
    "name": "L2.provenance_missing",
    "observed": "deny: provenance.missing",
    "passed": true,
-   "seconds": 0.0014364590169861913
+   "seconds": 0.0011629580112639815
   },
   {
    "blocked": true,
@@ -427,7 +427,7 @@
    "name": "L2.provenance_tampered",
    "observed": "deny: provenance.status_tampered",
    "passed": true,
-   "seconds": 0.0013022500206716359
+   "seconds": 0.001303083001403138
   },
   {
    "blocked": true,
@@ -437,7 +437,7 @@
    "name": "L2.provenance_content_swap",
    "observed": "deny: provenance.content_mismatch",
    "passed": true,
-   "seconds": 0.00118862499948591
+   "seconds": 0.0012318750086706132
   },
   {
    "blocked": true,
@@ -447,7 +447,7 @@
    "name": "L2.provenance_forged",
    "observed": "deny: provenance.signature",
    "passed": true,
-   "seconds": 0.0013550409930758178
+   "seconds": 0.001234208990354091
   },
   {
    "blocked": true,
@@ -457,7 +457,7 @@
    "name": "L4.hold_bypass",
    "observed": "endpoint refused: ticket.missing",
    "passed": true,
-   "seconds": 0.001284250000026077
+   "seconds": 0.0012556249857880175
   },
   {
    "blocked": true,
@@ -467,7 +467,7 @@
    "name": "L4.approval_forged",
    "observed": "deny: approval.untrusted",
    "passed": true,
-   "seconds": 0.0013452919956762344
+   "seconds": 0.0012458330020308495
   },
   {
    "blocked": true,
@@ -477,7 +477,7 @@
    "name": "L4.approval_wrong_request",
    "observed": "deny: approval.request_mismatch",
    "passed": true,
-   "seconds": 0.0012651249999180436
+   "seconds": 0.001222749997396022
   },
   {
    "blocked": true,
@@ -487,7 +487,7 @@
    "name": "L4.approval_replay",
    "observed": "deny: approval.unknown_hold",
    "passed": true,
-   "seconds": 0.0014164999884087592
+   "seconds": 0.001501374994404614
   },
   {
    "blocked": true,
@@ -497,7 +497,7 @@
    "name": "L4.approval_expired",
    "observed": "deny: approval.expired",
    "passed": true,
-   "seconds": 0.0012174170115031302
+   "seconds": 0.0013077500043436885
   },
   {
    "blocked": true,
@@ -507,7 +507,7 @@
    "name": "EP.no_ticket",
    "observed": "endpoint refused: ticket.missing",
    "passed": true,
-   "seconds": 0.0007824159984011203
+   "seconds": 0.00064504100009799
   },
   {
    "blocked": true,
@@ -517,7 +517,7 @@
    "name": "EP.ticket_replay",
    "observed": "endpoint refused: ticket.consumed",
    "passed": true,
-   "seconds": 0.0016229159955400974
+   "seconds": 0.0013427500089164823
   },
   {
    "blocked": true,
@@ -527,7 +527,7 @@
    "name": "EP.ticket_param_swap",
    "observed": "endpoint refused: ticket.params_mismatch",
    "passed": true,
-   "seconds": 0.001124583010096103
+   "seconds": 0.0013576250057667494
   },
   {
    "blocked": true,
@@ -537,7 +537,7 @@
    "name": "EP.ticket_action_swap",
    "observed": "endpoint refused: ticket.action_mismatch",
    "passed": true,
-   "seconds": 0.0011030409950762987
+   "seconds": 0.0012886670010630041
   },
   {
    "blocked": true,
@@ -547,7 +547,7 @@
    "name": "EP.ticket_forged",
    "observed": "endpoint refused: ticket.signature",
    "passed": true,
-   "seconds": 0.001168417016742751
+   "seconds": 0.0012261660012882203
   },
   {
    "blocked": true,
@@ -557,7 +557,7 @@
    "name": "EP.ticket_expired",
    "observed": "endpoint refused: ticket.expired",
    "passed": true,
-   "seconds": 0.0011597080156207085
+   "seconds": 0.0012199580087326467
   },
   {
    "blocked": true,
@@ -567,7 +567,7 @@
    "name": "AU.modify_record",
    "observed": "detected: hash mismatch at seq 1",
    "passed": true,
-   "seconds": 0.001653125014854595
+   "seconds": 0.0018217909964732826
   },
   {
    "blocked": true,
@@ -577,7 +577,7 @@
    "name": "AU.delete_middle",
    "observed": "detected: chain broken at seq 3",
    "passed": true,
-   "seconds": 0.0017719580209814012
+   "seconds": 0.0019034170254599303
   },
   {
    "blocked": true,
@@ -587,7 +587,7 @@
    "name": "AU.truncate_tail",
    "observed": "detected: log truncated: checkpoint covers 8 entries, 6 present",
    "passed": true,
-   "seconds": 0.0021736249909736216
+   "seconds": 0.002051416988251731
   },
   {
    "blocked": true,
@@ -597,7 +597,7 @@
    "name": "AU.reorder",
    "observed": "detected: chain broken at seq 2",
    "passed": true,
-   "seconds": 0.002122583013260737
+   "seconds": 0.001917332992888987
   },
   {
    "blocked": true,
@@ -607,7 +607,7 @@
    "name": "AU.forge_checkpoint",
    "observed": "detected: checkpoint signature invalid",
    "passed": true,
-   "seconds": 0.002080291014863178
+   "seconds": 0.0019561249937396497
   },
   {
    "blocked": true,
@@ -617,7 +617,7 @@
    "name": "AU.fork_after_checkpoint",
    "observed": "consistency proof rejected",
    "passed": true,
-   "seconds": 0.0023116669908631593
+   "seconds": 0.002486750017851591
   },
   {
    "blocked": true,
@@ -627,7 +627,7 @@
    "name": "AU.inclusion_forged_leaf",
    "observed": "forged leaf rejected",
    "passed": true,
-   "seconds": 0.001640417001908645
+   "seconds": 0.001849916996434331
   },
   {
    "blocked": false,
@@ -637,7 +637,7 @@
    "name": "baseline.openshell_supervised_action",
    "observed": "200 \u00b7 ticket \u2192 transfer 250 USD to acct-123456",
    "passed": true,
-   "seconds": 0.0020666659984271973
+   "seconds": 0.0017614579992368817
   },
   {
    "blocked": false,
@@ -647,7 +647,7 @@
    "name": "baseline.openshell_policy_derived",
    "observed": "4 rules \u2192 hosts ['api.internal.example.com', 'mail.internal.example.com']",
    "passed": true,
-   "seconds": 0.0007404589850921184
+   "seconds": 0.0005663750052917749
   },
   {
    "blocked": true,
@@ -657,7 +657,7 @@
    "name": "NV.unrouted_passthrough_no_ticket",
    "observed": "endpoint refused: ticket.missing",
    "passed": true,
-   "seconds": 0.0016277909744530916
+   "seconds": 0.001500750018749386
   },
   {
    "blocked": true,
@@ -667,7 +667,7 @@
    "name": "NV.unattested_sandbox",
    "observed": "403 attestation.missing",
    "passed": true,
-   "seconds": 0.0016816659772302955
+   "seconds": 0.0015145420038606972
   },
   {
    "blocked": true,
@@ -677,7 +677,7 @@
    "name": "NV.stale_host_token",
    "observed": "403 attestation.expired",
    "passed": true,
-   "seconds": 0.001789875008398667
+   "seconds": 0.0016057920001912862
   },
   {
    "blocked": true,
@@ -687,7 +687,7 @@
    "name": "NV.sentry_drift_quarantine",
    "observed": "403 observer.risk_above_threshold \u00b7 quarantined; then 403 sandbox.quarantined \u00b7 quarantined",
    "passed": true,
-   "seconds": 0.0018712500168476254
+   "seconds": 0.0016837079892866313
   },
   {
    "blocked": true,
@@ -697,7 +697,7 @@
    "name": "NV.sentry_identity_unverified",
    "observed": "403 observer.risk_above_threshold \u00b7 quarantined",
    "passed": true,
-   "seconds": 0.0019450419931672513
+   "seconds": 0.00189200000022538
   },
   {
    "blocked": true,
@@ -707,7 +707,7 @@
    "name": "NV.repeated_denials_quarantine",
    "observed": "5\u00d7 policy.no_rule \u2192 quarantined; then 403 sandbox.quarantined \u00b7 quarantined",
    "passed": true,
-   "seconds": 0.0022952080180402845
+   "seconds": 0.002260167006170377
   },
   {
    "blocked": true,
@@ -717,7 +717,7 @@
    "name": "NV.ticket_replay_across_sandboxes",
    "observed": "endpoint refused: ticket.consumed",
    "passed": true,
-   "seconds": 0.0020543329883366823
+   "seconds": 0.002031917014392093
   },
   {
    "blocked": true,
@@ -727,7 +727,77 @@
    "name": "NV.weights_export_via_supervisor",
    "observed": "403 policy.no_rule",
    "passed": true,
-   "seconds": 0.0018117500003427267
+   "seconds": 0.0016531249857507646
+  },
+  {
+   "blocked": false,
+   "description": "Rule lists both witnesses; Sentry and obs-main both report low risk \u2192 allowed",
+   "expect": "allowed",
+   "layer": "NV",
+   "name": "baseline.dual_witness_allow",
+   "observed": "200 \u00b7 both verdicts fresh and low",
+   "passed": true,
+   "seconds": 0.0019084160157945007
+  },
+  {
+   "blocked": true,
+   "description": "Both required; obs-main says low, Sentry reports drift 0.95 \u2192 denied (one high verdict is enough to stop it)",
+   "expect": "blocked",
+   "layer": "NV",
+   "name": "NV.dual_witness_sentry_high",
+   "observed": "403 observer.risk_above_threshold \u00b7 quarantined",
+   "passed": true,
+   "seconds": 0.0018248340056743473
+  },
+  {
+   "blocked": true,
+   "description": "Both required; Sentry says low, the safety observer flags the action \u2192 denied",
+   "expect": "blocked",
+   "layer": "NV",
+   "name": "NV.dual_witness_obs_main_high",
+   "observed": "403 observer.risk_above_threshold",
+   "passed": true,
+   "seconds": 0.0018549170054029673
+  },
+  {
+   "blocked": true,
+   "description": "Both required; Sentry genuine and low, the obs-main verdict signed by an attacker's key \u2192 denied",
+   "expect": "blocked",
+   "layer": "NV",
+   "name": "NV.dual_witness_second_forged",
+   "observed": "403 observer.signature",
+   "passed": true,
+   "seconds": 0.0020296250004321337
+  },
+  {
+   "blocked": true,
+   "description": "Both required; the safety lane is absent \u2192 denied even with a clean Sentry verdict (fail closed, not open)",
+   "expect": "blocked",
+   "layer": "NV",
+   "name": "NV.dual_witness_second_missing",
+   "observed": "403 observer.missing",
+   "passed": true,
+   "seconds": 0.001876750000519678
+  },
+  {
+   "blocked": false,
+   "description": "Recommended config: only human-held actions demand both witnesses; a large payment with both verdicts is held, approved, executed",
+   "expect": "allowed",
+   "layer": "NV",
+   "name": "baseline.high_authority_dual_witness",
+   "observed": "small \u2192 200 on Sentry alone; large \u2192 202 hold \u2192 approved \u2192 transfer 25000 USD to acct-654321",
+   "passed": true,
+   "seconds": 0.0023050000017974526
+  },
+  {
+   "blocked": true,
+   "description": "Recommended config; a large payment arrives with Sentry's verdict only \u2192 denied before it can even be held",
+   "expect": "blocked",
+   "layer": "NV",
+   "name": "NV.high_authority_single_witness",
+   "observed": "403 observer.missing",
+   "passed": true,
+   "seconds": 0.0018439159903209656
   }
  ],
  "passed": true,
