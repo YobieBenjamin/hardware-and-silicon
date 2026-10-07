@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hardware-ref"
+version = "0.1.0"
+description = "Reference stack for the hardware lane of a layered AI-safety architecture: silicon root of trust, attestation verifier, Layer 4 control plane, signed audit trail, attack harness"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+  "cryptography>=41",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+hwctl = "hardware_ref.cli:main"
+hardware-ref = "hardware_ref.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["hardware_ref*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
