@@ -1,4 +1,4 @@
-# hardware — the control-plane lane of a layered AI-safety architecture
+# hardware-and-silicon — the control-plane lane of a layered AI-safety architecture, and the silicon under it
 
 A one-command, self-validating reference implementation of the layers that have
 to live *below* the model, because anything above it can be stripped out:
@@ -62,7 +62,7 @@ See [`docs/NVIDIA.md`](docs/NVIDIA.md).
 ## Run it
 
 ```bash
-git clone https://github.com/YobieBenjamin/hardware && cd hardware
+git clone https://github.com/YobieBenjamin/hardware-and-silicon && cd hardware-and-silicon
 ./run.sh          # venv, install, 37 tests, 66-attack sweep → results/report.md  (under a minute)
 ./run.sh demo     # the above, then a narrated end-to-end flow, including the NVIDIA OASP path
 ```
@@ -122,6 +122,12 @@ so the gate is not passing by refusing everything.
 | `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
 | `tests/` | — | 37 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path and the full sweep |
 
+## Blog
+
+[A Multi-Layer Approach to AI Safety](blog/01-a-multi-layer-approach-to-ai-safety.md) — why every layer above the chip is a witness and only silicon can be the lock, why the design targets NVIDIA's platform (CUDA, GPU attestation, BlueField-4), and the clues to the silicon design that the next post will lay out in full. In [`blog/`](blog/) as Markdown and Word (CC BY-NC 4.0, see License below).
+
+The two watermarking posts that lead into it live in the [Watermark](https://github.com/YobieBenjamin/Watermark/tree/main/blog) repository: the plain-English one and the deep technical one.
+
 ## Documentation
 
 - [`docs/NVIDIA.md`](docs/NVIDIA.md) — how this lane sits on NVIDIA's Open Agent Safety Platform: supervisor middleware, derived OpenShell policy, Sentry as witness and kill switch, OCSF export
@@ -155,4 +161,4 @@ close. Endpoints are stubs that describe an effect instead of causing one.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+Source-available, not open source. Copyright (c) 2026 Yobie Benjamin. Software is licensed under the PolyForm Noncommercial License 1.0.0 ([LICENSE.md](https://github.com/YobieBenjamin/safety/blob/main/LICENSE.md)); documentation, data and figures under CC BY-NC 4.0 ([LICENSE-DOCS.txt](https://github.com/YobieBenjamin/safety/blob/main/LICENSE-DOCS.txt)). Attribution is required for any use in whole or in part ([NOTICE](https://github.com/YobieBenjamin/safety/blob/main/NOTICE)); commercial use requires a separate license. See [LICENSING.md](https://github.com/YobieBenjamin/safety/blob/main/LICENSING.md) for scope and contact, and [CITATION.cff](https://github.com/YobieBenjamin/safety/blob/main/CITATION.cff) to cite this work.
