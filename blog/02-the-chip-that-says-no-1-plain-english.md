@@ -40,13 +40,13 @@ The brain prevents mistakes instead of learning from each one. It uses three tri
 - **A copy of the plan.** Before you move, your brain sends a copy of the plan to a checker that predicts what will happen. For a chip: the AI has to say, in plain fields, what it is about to do. Where. How much. To whom. The chip checks the plan, not the AI's chatter, and checks again at the last moment, when the action actually fires.
 - **No, by default, with a pause.** Your brain holds every action back until something releases it. There is also a tiny delay before an action goes out, long enough for a veto. For a chip: every risky action starts as "no" and gets a short built-in delay. In that delay, any alarm can stop it.
 
-## The one question that makes it possible
+## The one question that sets the pace
 
-You cannot check everything. The trick is that you do not have to.
+Every action the AI takes in the world gets checked. Every one. A chip designer who reviewed this design made the point sharply: if some actions skip the check because they are "small," then the AI only has to call a big action small. So nothing skips the check.
 
-Ask one question about every action: can you undo it? If yes, let it happen and look at it later. Sending a draft, moving a file, saying something: fixable. If no, stop and check first. Firing a weapon, wiring money, deleting records: not fixable.
+What changes from action to action is how hard the check looks and how long it pauses. Ask one question: can you undo it? Sending a draft, moving a file, posting a message: fixable, so the check is quick, a record is kept, and the action goes. Firing a weapon, wiring money, deleting records: not fixable, so the check is thorough, there is a pause, and sometimes a person has to sign.
 
-Your brain does this. You hesitate at the edge of a cliff, not at a chair. This is also what makes the size problem go away: an AI handles trillions of requests, and almost none of them touch anything that cannot be undone.
+Your brain does this. You hesitate at the edge of a cliff, not at a chair, but you look at both. This is also what makes the size problem go away: an AI handles trillions of requests, almost none of them touch anything that cannot be undone, and the slow path is rare.
 
 ## AI may shout STOP but never say GO
 
@@ -66,16 +66,18 @@ This is not science fiction. Consumer drones refused to fly into airports for a 
 
 The same idea already runs in payments. A bank does not ask an AI whether to approve a million-dollar transfer to a brand-new account at 3 a.m. A limit says no. Limits, lists and maps are old, boring and strong.
 
-Now the honest part. This will not catch an AI that says something false, because no chip can know what is true. It will not stop a danger nobody thought to put on the list. And someone has to hold the keys, which is a human problem, not a chip problem. What it does is put a hard floor under the worst outcomes, no matter how smart or how wrong the AI is.
+One more thing a bank already knows. A permission slip has to name the exact thing it permits: this amount, to this account, under these rules, usable once. Otherwise the slip gets reused, or two payments that each fit the limit go through together and blow past it, or an old slip stays good after the rules changed. So the chip's permission is a receipt for one exact action, it is spent the moment the action happens, it dies when the rules change, and the chip remembers what it has spent even after a power cut.
+
+Now the honest part. This will not catch an AI that says something false, because no chip can know what is true. It will not stop a danger nobody thought to put on the list. The chip can check a target against a list; it cannot know whether the list is complete or up to date, and two sensors that agree are not two independent sensors if they can fail the same way. So every one of these systems comes with a written list of what it trusts and why. Stopping is not always the safe move either: a drone can simply not fire, but a robot holding something has to be told what its safe move is. And someone has to hold the keys, which is a human problem, not a chip problem. What it does is put a hard floor under the worst outcomes, no matter how smart or how wrong the AI is.
 
 ## The three layers that say no
 
 ![The three layers that say no: body versus chip](figures/fig_tiers_plain.png)
 
-Each layer on the left already exists in you. Two of the three on the right already exist in machines. The gatekeeper in the middle is the part we have to build.
+Each layer on the left already exists in you. Two of the three on the right already exist in machines. The gatekeeper in the middle exists today as software and is the part to put into a chip. The hard stop at the bottom is where the real promise lives: it works even if everything above it has been fooled.
 
 ## Where this goes next
 
-Part 2 makes the same argument with the names, numbers and papers. Part 3 is the design: what sits on the chip, what sits in the software around it, and what sits in the weapon, the bank or the robot at the far end. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no.
+Part 2 makes the same argument with the names, numbers and papers. Part 3 is the design: what sits on the chip, what sits in the software around it, and what sits in the weapon, the bank or the robot at the far end. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no. All three parts were revised after a chip designer went through the first draft; his corrections made the promise narrower and the design stronger.
 
 The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/YobieBenjamin/hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon).

@@ -116,12 +116,12 @@ tiers(
         ("Thinking brain", ["Slow and careful; weighs things", "Can override, with effort"],
          "People with keys", ["Slow override; several keys needed", "Every override written down"], "tint"),
         ("Deep alarm system", ["Fast; makes you freeze or flinch", "Wrong in the safe direction"],
-         "Gatekeeper", ["Checks the plan against the list", "Built-in pause so alarms can land"], "main"),
+         "Gatekeeper", ["Checks every action against the list", "Quick for small ones; a pause for big ones"], "main"),
         ("Reflex", ["Fastest; no thinking at all", "Hand off the stove"],
-         "Hard stop in the device", ["Map, limits, off by default", "Works even when the AI is wrong"], "tint"),
+         "Hard stop in the device", ["Its own map and sensors; off by default", "Works even when everything above is fooled"], "tint"),
     ],
     ["Arrow: the lower the layer, the faster it is and the more it can stop.",
-     "Highlighted box: the part that does not exist yet."],
+     "Highlighted box: software today, a chip next. The bottom row is the real promise."],
 )
 
 tiers(
@@ -132,12 +132,12 @@ tiers(
         ("Prefrontal cortex and ACC", ["Seconds; semantic, deliberate", "Overrides lower tiers with effort"],
          "Humans and institutions", ["Slow override by k-of-n keys", "Every override logged with a reason"], "tint"),
         ("Basal ganglia and STN", ["~150 ms; default deny, global stop", "Releases action, never originates it"],
-         "Governor at the effector", ["Catastrophe predicates on the declaration", "Monotone alarms, veto window, fail-safe"], "main"),
+         "Gate at the effector", ["Rulebook check on the typed request", "Witnesses, budget, veto window; every action"], "main"),
         ("Spinal reflex arc", ["~30 ms; hardwired, no semantics", "Fires before the cortex is informed"],
-         "Actuator interlock", ["Geofence, hard limits, heartbeat", "Release line off by default"], "tint"),
+         "Endpoint comparator (the interlock)", ["Own sensors and lists; heartbeat", "Off by default; its own safe transition"], "tint"),
     ],
     ["Arrow: veto authority grows and latency shrinks downward; override runs upward, slowly.",
-     "Highlighted box: the piece to build."],
+     "Highlighted box: software today, silicon next. The bottom row is where the guarantee lives."],
 )
 
 # ---------------------------------------------------------------- the whole stack
