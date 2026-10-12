@@ -2,7 +2,7 @@
 
 By Yobie Benjamin · October 12, 2026 · Part 1 of 3: the plain-English version
 
-> You cannot trust an AI to police another AI. The thing that stops a bad action has to work like a reflex, and it has to live in the chip.
+> You cannot trust an AI to police another AI. I have sat in too many meetings where that was the plan. The thing that stops a bad action has to work like a reflex, and it has to live in the chip. There is a way to do this, and this post is the plain-English version of it.
 
 ## Too late
 
@@ -14,7 +14,7 @@ This is the whole problem with AI safety in one scene. Computers are very good a
 
 ## Why we can't ask AI to police AI
 
-The first idea everyone has is to put a second AI in charge of watching the first one. It sounds smart. It does not work.
+The first idea everyone has is to put a second AI in charge of watching the first one. I hear it in every boardroom. It sounds smart. It does not work.
 
 The second AI is the same kind of thing as the first. It can be fooled the same ways. It can be talked into things, and nobody can fully check what is going on inside it.
 
@@ -23,6 +23,8 @@ Think of a referee at a ball game who is also a player. That is not a referee. A
 So what passes? A smoke detector. It does not understand fire. It senses smoke and screams. It is cheap, dumb, and it goes off early. That is what we want, built into the chip.
 
 ## Your body already solved this
+
+This is my favorite part, because I am a biology nerd and the body got here first.
 
 Put your hand on a hot stove. Your hand is off the stove before your brain even knows what happened. The signal never reached the thinking part of your brain; a short loop in your spinal cord did it, in about a thirtieth of a second.
 
@@ -62,13 +64,13 @@ Back to the drone. Put a map of protected places in the weapon's own guidance ch
 
 Turning it on near a protected place takes several humans with keys, and the reason gets written down. The AI's opinion does not matter. The map does.
 
-This is not science fiction. Consumer drones refused to fly into airports for a decade because of a map in their software. In 2025 one big maker changed that in the US from a hard stop to a warning. Nothing about the technology changed. The pattern works; "just a warning" is how it dies.
+This is not science fiction. My own DJI drone refused to fly into airports for a decade because of a map in its software. In 2025 DJI changed that in the US from a hard stop to a warning. Nothing about the technology changed. The pattern works. "Just a warning" is how it dies.
 
 The same idea already runs in payments. A bank does not ask an AI whether to approve a million-dollar transfer to a brand-new account at 3 a.m. A limit says no. Limits, lists and maps are old, boring and strong.
 
 One more thing a bank already knows. A permission slip has to name the exact thing it permits: this amount, to this account, under these rules, usable once. Otherwise the slip gets reused, or two payments that each fit the limit go through together and blow past it, or an old slip stays good after the rules changed. So the chip's permission is a receipt for one exact action, it is spent the moment the action happens, it dies when the rules change, and the chip remembers what it has spent even after a power cut.
 
-Now the honest part. This will not catch an AI that says something false, because no chip can know what is true. It will not stop a danger nobody thought to put on the list. The chip can check a target against a list; it cannot know whether the list is complete or up to date, and two sensors that agree are not two independent sensors if they can fail the same way. So every one of these systems comes with a written list of what it trusts and why. Stopping is not always the safe move either: a drone can simply not fire, but a robot holding something has to be told what its safe move is. And someone has to hold the keys, which is a human problem, not a chip problem. What it does is put a hard floor under the worst outcomes, no matter how smart or how wrong the AI is.
+Now the honest part, because I would rather tell you the limits than oversell this. It will not catch an AI that says something false, because no chip can know what is true. It will not stop a danger nobody thought to put on the list. The chip can check a target against a list; it cannot know whether the list is complete or up to date, and two sensors that agree are not two independent sensors if they can fail the same way. So every one of these systems comes with a written list of what it trusts and why. Stopping is not always the safe move either: a drone can simply not fire, but a robot holding something has to be told what its safe move is. And someone has to hold the keys, which is a human problem, not a chip problem. What it does is put a hard floor under the worst outcomes, no matter how smart or how wrong the AI is.
 
 ## The three layers that say no
 
@@ -80,4 +82,4 @@ Each layer on the left already exists in you. Two of the three on the right alre
 
 Part 2 makes the same argument with the names, numbers and papers. Part 3 is the design: what sits on the chip, what sits in the software around it, and what sits in the weapon, the bank or the robot at the far end. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no. All three parts were revised after a chip designer went through the first draft; his corrections made the promise narrower and the design stronger.
 
-The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/YobieBenjamin/hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon).
+I am not asking anyone to trust the AI companies, or the AI. I am asking for a chip that does not care what the AI thinks. The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/YobieBenjamin/hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon).
