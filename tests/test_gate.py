@@ -136,5 +136,5 @@ def test_every_decision_is_audited():
     node.act("payments.transfer", PAY, tok)
     node.act("shell.exec", {"cmd": "id"}, tok)
     events = [e["record"]["event"] for e in node.gate.audit.entries[before:]]
-    assert events == ["gate.decision", "endpoint.executed", "gate.decision"]
+    assert events == ["gate.decision", "gate.commit", "endpoint.executed", "gate.decision"]
     assert node.gate.audit.entries[-1]["record"]["decision"] == "deny"

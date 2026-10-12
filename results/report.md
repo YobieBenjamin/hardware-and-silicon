@@ -1,8 +1,8 @@
 # Sweep report
 
-`hardware_ref 0.1.0` · Python 3.13.2 · macOS-27.0.1-arm64-arm-64bit-Mach-O
+`hardware_ref 0.1.0` · Python 3.13.16 · Linux-6.18.44-fc-v114-x86_64-with-glibc2.39
 
-**Attacks blocked: 66/66 · Baselines allowed: 10/10 · Result: PASS**
+**Attacks blocked: 75/75 · Baselines allowed: 12/12 · Result: PASS**
 
 Every entry runs against a freshly built node. *Expected* is what the stack must do; *observed* is the reason code it actually produced. Baselines are legitimate operations that must go through — they are what stops a gate from passing by denying everything.
 
@@ -91,10 +91,10 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|
-| `baseline.audit_verifies` | Chain, checkpoint, inclusion and consistency proofs all verify on the honest log | allowed | `5 entries, 2 checkpoints, proofs ok` | ✅ |
-| `AU.modify_record` | An allow decision in the log is edited to look like a deny | blocked | `detected: hash mismatch at seq 1` | ✅ |
+| `baseline.audit_verifies` | Chain, checkpoint, inclusion and consistency proofs all verify on the honest log | allowed | `8 entries, 2 checkpoints, proofs ok` | ✅ |
+| `AU.modify_record` | An allow decision in the log is edited to look like a deny | blocked | `detected: hash mismatch at seq 2` | ✅ |
 | `AU.delete_middle` | One entry removed from the middle of the log | blocked | `detected: chain broken at seq 3` | ✅ |
-| `AU.truncate_tail` | Entries after a signed checkpoint are dropped | blocked | `detected: log truncated: checkpoint covers 8 entries, 6 present` | ✅ |
+| `AU.truncate_tail` | Entries after a signed checkpoint are dropped | blocked | `detected: log truncated: checkpoint covers 12 entries, 10 present` | ✅ |
 | `AU.reorder` | Two entries swapped | blocked | `detected: chain broken at seq 2` | ✅ |
 | `AU.forge_checkpoint` | Checkpoint re-signed by an attacker key over a shortened log | blocked | `detected: checkpoint signature invalid` | ✅ |
 | `AU.fork_after_checkpoint` | History rewritten after an old checkpoint; consistency proof must fail | blocked | `consistency proof rejected` | ✅ |
@@ -121,3 +121,19 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 | `NV.dual_witness_second_missing` | Both required; the safety lane is absent → denied even with a clean Sentry verdict (fail closed, not open) | blocked | `403 observer.missing` | ✅ |
 | `baseline.high_authority_dual_witness` | Recommended config: only human-held actions demand both witnesses; a large payment with both verdicts is held, approved, executed | allowed | `small → 200 on Sentry alone; large → 202 hold → approved → transfer 25000 USD to acct-654321` | ✅ |
 | `NV.high_authority_single_witness` | Recommended config; a large payment arrives with Sentry's verdict only → denied before it can even be held | blocked | `403 observer.missing` | ✅ |
+
+## Transactional authorization · budgets, persistence, epochs
+
+| Entry | What happens | Expected | Observed | Result |
+|---|---|---|---|---|
+| `baseline.hold_survives_restart` | A held payment survives a restart of the gate and can still be approved and executed | allowed | `restart → approved → transfer 25000 USD to acct-654321` | ✅ |
+| `baseline.budget_recovers_after_ticket_expiry` | A ticket that was never executed gives its reservation back when it expires | allowed | `reserved 1000 of 1500 → 900 blocked → ticket expired → transfer 900 USD to acct-123456` | ✅ |
+| `TX.budget_exhausted` | Three 900 USD payments against a shared 2,000 USD hourly budget; the third is refused at the gate | blocked | `deny: budget.exceeded` | ✅ |
+| `TX.concurrent_overspend` | 40 concurrent 250 USD requests against a 2,000 USD budget; more than 8 allowed would be an overspend | blocked | `8/40 allowed, 32 budget.exceeded` | ✅ |
+| `TX.ticket_after_policy_change` | Ticket minted under one policy presented after governance loaded a stricter one | blocked | `endpoint refused: ticket.policy_stale` | ✅ |
+| `TX.epoch_forged` | An attacker tries to move the endpoint to a policy epoch the gate never signed | blocked | `refused: policy epoch: signature invalid or not the gate's` | ✅ |
+| `TX.ticket_replay_after_restart` | A consumed ticket is presented again after the endpoint restarts from durable state | blocked | `endpoint refused: ticket.consumed` | ✅ |
+| `TX.request_replay_after_restart` | A request already decided before the restart is submitted again afterwards | blocked | `deny: request.replayed` | ✅ |
+| `TX.commit_unreachable` | The endpoint holds a valid ticket but cannot reach the gate to commit the reservation (partition) | blocked | `endpoint refused: commit.unreachable` | ✅ |
+| `TX.risk_label_ignored` | A compromised broker labels a 25,000 USD payment 'reversible' and asks for the auto path | blocked | `hold: human.approval_required` | ✅ |
+| `TX.commit_forged_ticket` | A ticket re-signed by a key that is not the gate's is offered for commit | blocked | `commit refused` | ✅ |

@@ -26,11 +26,11 @@ def test_sweep_blocks_every_attack_and_allows_every_baseline(tmp_path):
     failures = [o for o in summary["outcomes"] if not o["passed"]]
     assert failures == [], failures
     assert summary["attacks_blocked"] == summary["attacks"] >= 50
-    assert summary["baselines_allowed"] == summary["baselines"] == 10
+    assert summary["baselines_allowed"] == summary["baselines"] == 12
     assert (tmp_path / "report.md").exists() and (tmp_path / "report.json").exists()
 
 
 def test_catalogue_names_are_unique_and_layered():
     names = [a.name for a in CATALOGUE]
     assert len(names) == len(set(names))
-    assert {a.layer for a in CATALOGUE} == {"L0", "L2", "L3", "L4", "L5", "EP", "AU", "NV"}
+    assert {a.layer for a in CATALOGUE} == {"L0", "L2", "L3", "L4", "L5", "EP", "AU", "NV", "TX"}

@@ -53,13 +53,18 @@ options for the Layer 4 block, in increasing order of integration:
 | **A. DPU / SmartNIC** — *NVIDIA's placement* | **BlueField-4** on each Vera Rubin compute tray, on the node's only path to the model, programmed with **DOCA** — exactly where NVIDIA's Sentry runs | ships today; sees every packet and every storage request; has its own root of trust; isolated from the host; NVIDIA already puts the watchdog and the kill switch here, so the Layer 4 block is a DOCA application beside Sentry rather than new hardware; enabling it is a software update on Vera + BlueField-4 systems | PCIe peer-to-peer and NVLink paths between accelerators are not on the DPU's path; needs IOMMU policy to close them |
 | **B. Board-level safety controller** | discrete chip on the carrier between the GPU's PCIe/NVLink egress and the root complex | nothing leaves the GPU without passing it, including P2P; independent silicon with independent custody | custom board; bandwidth and latency budget on the hot path; needs the GPU's CC mode to exclude the host from GPU memory so the gate is not bypassed through memory |
 | **C. In-GPU IP block** | inside the accelerator's I/O stage, next to the existing attestation root | strongest: every egress is gated and the measurement is the GPU's own | requires the vendor |
+| **E. Endpoint comparator** — *the guarantee* (added after the October 2026 review) | inside the device that acts: the guidance chip, the payment switch's HSM, the motor controller, the line card | rejects unauthorized operations before commitment with its own sensors and lists; holds with every layer above it compromised | protects only endpoints that enforce it; depends on the trustworthiness of its inputs (`docs/CHIP_DESIGN.md` §4) |
 
 The reference is written to be placement-agnostic: evidence, tokens, tickets
 and audit records are messages, and a message format does not care whether the
-comparator is on a DPU, a carrier board or a die. Placement A is first because
+comparator is on a DPU, a carrier board or a die. E is always present and is
+what the contract rests on; A is first among the compute-side placements because
 NVIDIA's Open Agent Safety Platform has already made the DPU the chokepoint
 (`docs/NVIDIA.md`); B and C remain the path to the properties a DPU cannot give
-(P2P/NVLink egress, in-die measurement).
+(P2P/NVLink egress, in-die measurement). Note that a copy-engine descriptor check
+does not see thread-initiated peer loads and stores over NVLink; inside the GPU
+the enforcement points are the MMU's peer mappings and the link keys, not only
+descriptors (`docs/CHIP_DESIGN.md` §5).
 
 The GPU-side attestation this repo models (`device_class="gpu"`, evidence
 bound inside the TEE quote) is the H100-class confidential-computing flow in
@@ -91,7 +96,7 @@ owe each other.
 |---|---|---|
 | 1 | **Functional reference** (this repo): every block as software, every attack as a test, message formats fixed | done — `./run.sh` |
 | 2 | **Formal specification**: state machines for the root (reset → measured → quoted), the gate (request → decision → ticket → consumed) and the log (append → checkpoint → prove); message formats moved from JSON to CBOR/COSE; invariants written down (no ticket without token; no allow without rule; head hash monotone) and model-checked against the software | next |
-| 3 | **Theoretical silicon design**: block diagram with interfaces (AXI/PCIe/NVLink attach points), the CAM and comparator microarchitecture, key-slot and fuse map, area/latency/power estimates for placements A/B/C, and the test plan that re-runs this catalogue against an RTL simulation | the "theoretical hardware (silicon-based solution)" phase |
+| 3 | **Theoretical silicon design**: block diagram with interfaces (AXI/PCIe/NVLink attach points), the CAM and comparator microarchitecture, key-slot and fuse map, area/latency/power estimates for placements A/B/C, and the test plan that re-runs this catalogue against an RTL simulation | drafted: `docs/CHIP_DESIGN.md` and `blog/04-the-chip-that-says-no-3-the-silicon-design.md`; area/latency/power estimates still open |
 | 4 | **Emulation**: the Layer 4 block as a DOCA application on BlueField-4 beside Sentry (placement A), then on an FPGA on a carrier (placement B), this same harness driving it over a real PCIe/Ethernet path | after 3 |
 
 The catalogue is the constant across all four phases. A phase is finished when
@@ -105,3 +110,16 @@ The catalogue is the constant across all four phases. A phase is finished when
   modelled, not owned. Placement C requires the vendor; A and B do not.
 - The governance root is a key with custody rules, not a chip; it will stay a
   key. What silicon gives it is an unchangeable place to be *trusted from*.
+
+## 7. Revision after review (October 2026)
+
+A chip designer's review changed the design in seven places; the record is
+`docs/REVIEW-2026-10.md` and the revised design is `docs/CHIP_DESIGN.md`. The
+three that touch this document: the unit of protection is an *enforcement
+domain* and the endpoint comparator (placement E) is the primary guarantee;
+enforcement inside the GPU is distributed across checkers (descriptors, peer
+mappings, link keys, filter tables) under a small policy controller rather than
+one mediating block; and the Layer 4 gate is transactional (reserve → commit,
+durable replay state, policy epochs), which `ledger.py` now implements in
+software and which maps to counters, a consumed-id CAM and an epoch register in
+hardware.

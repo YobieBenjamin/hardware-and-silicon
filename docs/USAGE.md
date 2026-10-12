@@ -3,7 +3,7 @@
 ## One command
 
 ```bash
-./run.sh          # venv → install → pytest (37 tests) → sweep (66 attacks + 10 baselines) → results/report.md
+./run.sh          # venv → install → pytest (51 tests) → sweep (75 attacks + 12 baselines) → results/report.md
 ./run.sh demo     # the same, then `hwctl demo`
 ./reproduce.sh    # run.sh, then git diff of results/ against the committed report
 ```
@@ -192,3 +192,19 @@ consistency proofs for every tree size up to 20,
 `tests/test_oasp.py` the NVIDIA path (middleware, holds, quarantine and release,
 drift window, multi-observer rules, policy translation, OCSF export), and
 `tests/test_integration.py` the full flow plus the sweep.
+
+## Durable state and restart (added October 2026)
+
+`build_node(state_dir="…")` puts the gate's transactional state (`gate-state.json`:
+replay store, holds, rate windows, budget reservations) and the endpoints' state
+(`endpoint-state.json`: consumed tickets, policy epoch) on disk, written with
+write-temp → fsync → rename before any decision returns. `Node.restart()` rebuilds the
+gate, the endpoints and the supervisor from those stores with the same DICE-style gate
+key, so outstanding tickets stay verifiable and consumed ones stay consumed. Without
+`state_dir` the state is in memory, which is the pre-review behaviour.
+
+A rule may carry `budget: {key, param, limit, window_s}` (a shared allowance, reserved
+at allow and committed at the endpoint) and `endpoint: "<name>"` (the registry the ticket
+is valid at). Tickets now carry `policy_id`; an endpoint that has been given the gate's
+signed epoch (`EndpointRegistry.set_policy_epoch(gate.signed_epoch())`) refuses tickets
+from any other. See `docs/CHIP_DESIGN.md` §7 and `docs/REVIEW-2026-10.md`.

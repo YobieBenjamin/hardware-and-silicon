@@ -14,6 +14,14 @@ That is what makes the gate a chokepoint rather than a suggestion. In
 silicon the ticket check is a fixed-function comparator on the I/O path:
 the NIC/PCIe fabric does not carry a request that lacks a valid capability
 (see ``docs/SILICON.md``).
+
+After the October 2026 review the endpoint is the committing half of a
+transaction (``ledger.py``): the consumed-ticket set is durable, a ticket
+must name the policy epoch the endpoint currently accepts, a ticket minted
+for another endpoint is refused, and the reservation the ticket carries is
+committed at the gate *before* the handler runs — if the gate cannot be
+reached, the endpoint fails closed rather than acting on an uncommitted
+authorization.
 """
 from __future__ import annotations
 
@@ -24,6 +32,7 @@ from .audit import AuditLog
 from .canon import digest
 from .clock import SimClock
 from .keys import VerifyKey, verify_object
+from .ledger import DurableState, StateStore
 
 Handler = Callable[[dict], dict]
 
@@ -42,14 +51,39 @@ class ExecutionRecord:
     result: dict = field(default_factory=dict)
 
 
+Committer = Callable[[Any], bool]
+
+
 class EndpointRegistry:
-    def __init__(self, gate: VerifyKey, clock: SimClock, audit: AuditLog):
+    def __init__(
+        self,
+        gate: VerifyKey,
+        clock: SimClock,
+        audit: AuditLog,
+        *,
+        name: str = "endpoint",
+        store: StateStore | None = None,
+        on_commit: Committer | None = None,
+    ):
         self.gate = gate
         self.clock = clock
         self.audit = audit
+        self.name = name
+        self.state = DurableState(store)
+        self.on_commit = on_commit
         self._handlers: dict[str, Handler] = {}
-        self._consumed: set[str] = set()
         self.executions: list[ExecutionRecord] = []
+
+    @property
+    def policy_epoch(self) -> str | None:
+        return self.state.epoch
+
+    def set_policy_epoch(self, signed_epoch: Any) -> None:
+        """Accept a gate-signed policy epoch; tickets from any other epoch are refused from now on."""
+        if not verify_object(signed_epoch, self.gate) or signed_epoch["payload"].get("type") != "policy-epoch":
+            raise ValueError("policy epoch: signature invalid or not the gate's")
+        self.state.set_epoch(signed_epoch["payload"]["policy_id"])
+        self.audit.append({"event": "endpoint.epoch", "endpoint": self.name, "policy_id": self.state.epoch})
 
     def register(self, action: str, handler: Handler) -> None:
         self._handlers[action] = handler
@@ -59,16 +93,27 @@ class EndpointRegistry:
         return sorted(self._handlers)
 
     def execute(self, ticket: Any, action: str, params: dict) -> dict:
-        reason = self._admit(ticket, action, params)
-        if reason:
-            self.audit.append({"event": "endpoint.refused", "action": action, "reason": reason})
-            raise EndpointRefused(reason)
-        tid = ticket["payload"]["ticket_id"]
-        self._consumed.add(tid)
-        result = self._handlers[action](params)
-        self.executions.append(ExecutionRecord(action, params, tid, result))
-        self.audit.append({"event": "endpoint.executed", "action": action, "ticket_id": tid, "params_digest": digest(params)})
-        return result
+        """admit → burn the ticket (durably) → commit the reservation at the gate → execute → record."""
+        with self.state.lock:
+            reason = self._admit(ticket, action, params)
+            if reason:
+                self.audit.append({"event": "endpoint.refused", "action": action, "reason": reason})
+                raise EndpointRefused(reason)
+            tid = ticket["payload"]["ticket_id"]
+            self.state.consume(tid, self.clock.now())
+            if self.on_commit is not None:
+                try:
+                    committed = self.on_commit(ticket)
+                except Exception:  # the gate is unreachable: a partition, a crash, a cut cable
+                    committed = None
+                if not committed:
+                    reason = "commit.unreachable" if committed is None else "commit.rejected"
+                    self.audit.append({"event": "endpoint.refused", "action": action, "ticket_id": tid, "reason": reason})
+                    raise EndpointRefused(reason)
+            result = self._handlers[action](params)
+            self.executions.append(ExecutionRecord(action, params, tid, result))
+            self.audit.append({"event": "endpoint.executed", "action": action, "ticket_id": tid, "params_digest": digest(params)})
+            return result
 
     def _admit(self, ticket: Any, action: str, params: dict) -> str | None:
         if action not in self._handlers:
@@ -86,7 +131,11 @@ class EndpointRegistry:
             return "ticket.action_mismatch"
         if p.get("params_digest") != digest(params):
             return "ticket.params_mismatch"
-        if p.get("ticket_id") in self._consumed:
+        if p.get("endpoint") is not None and p["endpoint"] != self.name:
+            return "ticket.endpoint_mismatch"
+        if self.state.epoch is not None and p.get("policy_id") != self.state.epoch:
+            return "ticket.policy_stale"
+        if self.state.consumed(p.get("ticket_id", "")):
             return "ticket.consumed"
         return None
 

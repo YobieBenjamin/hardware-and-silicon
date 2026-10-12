@@ -781,3 +781,142 @@ def _a_high_auth_single(node: Node):
     node = build_oasp_node(clock=SimClock(), high_authority_observer=BOTH)
     _, obs = _sup(node, "POST", API_HOST, "/payments/transfer", LARGE_BODY)
     return obs, obs.startswith("403")
+
+
+# ---------------------------------------------------------------------------------------
+# Transactional authorization — reservations, persistence, policy epochs (docs/REVIEW-2026-10.md §5)
+# ---------------------------------------------------------------------------------------
+
+import tempfile
+import threading
+
+from .system import default_policy
+
+
+def _reload_policy(node: Node, pol: dict) -> None:
+    node.gate.load_policy(node.governance.policy(pol))
+    node.endpoints.set_policy_epoch(node.gate.signed_epoch())
+
+
+@attack("baseline.hold_survives_restart", "TX", "A held payment survives a restart of the gate and can still be approved and executed", expect="allowed")
+def _b_tx_restart_hold(_: Node):
+    node = build_node(clock=SimClock(), state_dir=tempfile.mkdtemp(prefix="hwref-"))
+    params = {"amount": 25000, "currency": "USD", "destination": "acct-654321"}
+    held, _ = node.act("payments.transfer", params, _token(node))
+    if held.decision.value != "hold":
+        return f"expected hold, got {held.decision.value}", True
+    node.restart()
+    approved = node.approve(held)
+    if not approved.allowed:
+        return "approval denied after restart: " + ", ".join(approved.reasons), True
+    out = node.endpoints.execute(approved.ticket, "payments.transfer", params)
+    return f"restart → approved → {out['effect']}", False
+
+
+@attack("baseline.budget_recovers_after_ticket_expiry", "TX", "A ticket that was never executed gives its reservation back when it expires", expect="allowed")
+def _b_tx_release(node: Node):
+    tok = _token(node)
+    pol = default_policy(node.measurement)
+    pol["rules"][0].pop("rate_limit")
+    pol["rules"][0]["budget"]["limit"] = 1500
+    _reload_policy(node, pol)
+    first = node.gate.request(node.build_request("payments.transfer", {**PAY, "amount": 1000}, tok))
+    if not first.allowed:
+        return "setup failed: " + ", ".join(first.reasons), True
+    blocked = node.gate.request(node.build_request("payments.transfer", {**PAY, "amount": 900}, tok))
+    if blocked.reasons != ["budget.exceeded"]:
+        return f"expected budget.exceeded while reserved, got {blocked.reasons}", True
+    node.clock.advance(node.gate.ticket_ttl + 1)
+    res, out = node.act("payments.transfer", {**PAY, "amount": 900}, tok)
+    return (f"reserved 1000 of 1500 → 900 blocked → ticket expired → {out['effect']}" if out else "denied: " + ", ".join(res.reasons)), not res.allowed
+
+
+@attack("TX.budget_exhausted", "TX", "Three 900 USD payments against a shared 2,000 USD hourly budget; the third is refused at the gate")
+def _a_tx_budget(node: Node):
+    tok = _token(node)
+    node.act("payments.transfer", {**PAY, "amount": 900}, tok)
+    node.act("payments.transfer", {**PAY, "amount": 900}, tok)
+    return _gate(node, "payments.transfer", {**PAY, "amount": 900}, tok)
+
+
+@attack("TX.concurrent_overspend", "TX", "40 concurrent 250 USD requests against a 2,000 USD budget; more than 8 allowed would be an overspend")
+def _a_tx_concurrent(node: Node):
+    pol = default_policy(node.measurement)
+    pol["rules"][0].pop("rate_limit")
+    _reload_policy(node, pol)
+    tok = _token(node)
+    reqs = [node.build_request("payments.transfer", PAY, tok) for _ in range(40)]
+    results, lock = [], threading.Lock()
+
+    def worker(req):
+        r = node.gate.request(req)
+        with lock:
+            results.append(r)
+
+    threads = [threading.Thread(target=worker, args=(r,)) for r in reqs]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    allowed = sum(r.allowed for r in results)
+    return f"{allowed}/40 allowed, {sum(r.reasons == ['budget.exceeded'] for r in results)} budget.exceeded", allowed * 250 <= 2000
+
+
+@attack("TX.ticket_after_policy_change", "TX", "Ticket minted under one policy presented after governance loaded a stricter one")
+def _a_tx_epoch(node: Node):
+    t = _ticket(node)
+    pol = default_policy(node.measurement)
+    pol["rules"][0]["constraints"]["amount"]["max"] = 100
+    _reload_policy(node, pol)
+    return _exec(node, t, "payments.transfer", PAY)
+
+
+@attack("TX.epoch_forged", "TX", "An attacker tries to move the endpoint to a policy epoch the gate never signed")
+def _a_tx_epoch_forged(node: Node):
+    forged = sign_object(SigningKey.generate(), {"type": "policy-epoch", "gate": "gate", "policy_id": "attacker", "issued_at": node.clock.now()})
+    try:
+        node.endpoints.set_policy_epoch(forged)
+    except ValueError as exc:
+        return f"refused: {exc}", True
+    return "accepted a forged epoch", False
+
+
+@attack("TX.ticket_replay_after_restart", "TX", "A consumed ticket is presented again after the endpoint restarts from durable state")
+def _a_tx_replay_restart(_: Node):
+    node = build_node(clock=SimClock(), state_dir=tempfile.mkdtemp(prefix="hwref-"))
+    res, _ = node.act("payments.transfer", PAY, _token(node))
+    node.restart()
+    return _exec(node, res.ticket, "payments.transfer", PAY)
+
+
+@attack("TX.request_replay_after_restart", "TX", "A request already decided before the restart is submitted again afterwards")
+def _a_tx_req_restart(_: Node):
+    node = build_node(clock=SimClock(), state_dir=tempfile.mkdtemp(prefix="hwref-"))
+    req = node.build_request("payments.transfer", PAY, _token(node))
+    node.gate.request(req)
+    node.restart()
+    res = node.gate.request(req)
+    return (f"{res.decision.value}: {', '.join(res.reasons)}" if res.reasons else res.decision.value), not res.allowed
+
+
+@attack("TX.commit_unreachable", "TX", "The endpoint holds a valid ticket but cannot reach the gate to commit the reservation (partition)")
+def _a_tx_partition(node: Node):
+    t = _ticket(node)
+    node.endpoints.on_commit = lambda _ticket: (_ for _ in ()).throw(ConnectionError("partition"))
+    return _exec(node, t, "payments.transfer", PAY)
+
+
+@attack("TX.risk_label_ignored", "TX", "A compromised broker labels a 25,000 USD payment 'reversible' and asks for the auto path")
+def _a_tx_risk_label(node: Node):
+    params = {"amount": 25000, "currency": "USD", "destination": "acct-654321", "risk_class": "reversible"}
+    req = node.build_request("payments.transfer", params, _token(node))
+    req["requirement"] = {"mode": "auto"}
+    res = node.gate.request(req)
+    return (f"{res.decision.value}: {', '.join(res.reasons)}" if res.reasons else res.decision.value), not res.allowed
+
+
+@attack("TX.commit_forged_ticket", "TX", "A ticket re-signed by a key that is not the gate's is offered for commit")
+def _a_tx_commit_forged(node: Node):
+    t = _ticket(node)
+    ok = node.gate.commit(sign_object(SigningKey.generate(), t["payload"]))
+    return ("commit refused" if not ok else "committed a forged ticket"), not ok

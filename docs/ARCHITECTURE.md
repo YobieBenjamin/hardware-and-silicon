@@ -99,14 +99,18 @@ requests that are already attested and granted; budget and human holds last.
                  allowed; the request takes the first it fits)
 3. witnessed?    rule says observer → a fresh L3 assertion about *this request hash* under max_risk
                  rule says provenance → a fresh L2 assertion that *this content* is exact
-4. budget/human? rate limit window · human → HOLD until a registered approver signs (hold id +
-                 request hash); otherwise ALLOW
+4. budget/human? rate limit window · shared budget reserved (committed + reserved + amount ≤ limit,
+                 under the same lock as the replay check) · human → HOLD until a registered approver
+                 signs (hold id + request hash); otherwise ALLOW
 ```
 
 `ALLOW` mints an **action ticket**: signed by the gate, bound to the request
-hash, the action and the parameter digest, single-use, short-lived. Endpoints
-check all five properties before executing. A held request has no ticket; a
-forged approval has no trusted key; a replayed approval finds no hold.
+hash, the action, the parameter digest, the policy epoch, optionally the
+endpoint, and the budget reservation; single-use, short-lived. Endpoints check
+all of it before executing, burn the ticket durably, and commit the reservation
+at the gate *before* they act (`ledger.py`). A held request has no ticket; a
+forged approval has no trusted key; a replayed approval finds no hold; a ticket
+from a superseded policy finds an endpoint on a newer epoch.
 
 Every path — allow, deny, hold, approve, endpoint execute, endpoint refuse —
 appends to the audit log *before* the result is returned.
@@ -161,8 +165,9 @@ Three independent mechanisms, so an attacker has to defeat all three:
 
 ## What would change at scale
 
-- Nonce and ticket state are in-memory sets; a fleet needs a replicated store
-  or, better, a per-chip monotonic counter folded into the token.
+- Replay state, holds, rate windows and reservations are durable (`ledger.py`,
+  `state_dir`) since the October 2026 review; a fleet still needs one ledger per
+  budget key and, in silicon, a per-chip monotonic counter folded into the token.
 - One governance root key signs everything; a real deployment splits reference
   values, revocations and policy across keys with different custody.
 - The policy table is linear; a hardware table is a CAM keyed on (measurement,

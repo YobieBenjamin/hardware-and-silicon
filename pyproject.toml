@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hardware-ref"
-version = "0.1.0"
-description = "Reference stack for the hardware lane of a layered AI-safety architecture: silicon root of trust, attestation verifier, Layer 4 control plane, signed audit trail, attack harness"
+version = "0.2.0"
+description = "Reference stack for the hardware lane of a layered AI-safety architecture: silicon root of trust, attestation verifier, transactional Layer 4 control plane, signed audit trail, attack harness"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "PolyForm-Noncommercial-1.0.0"}

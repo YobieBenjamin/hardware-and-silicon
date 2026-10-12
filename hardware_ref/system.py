@@ -16,6 +16,7 @@ methods for the happy path. The harness then breaks it in every way it can.
 """
 from __future__ import annotations
 
+import os
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -25,7 +26,8 @@ from .attest import AttestationResult, AttestationVerifier, GovernanceRoot, buil
 from .clock import SimClock
 from .endpoints import EndpointRegistry, stub_handlers
 from .gate import GateResult, PolicyGate, make_approval, request_hash
-from .keys import SigningKey
+from .keys import SigningKey, hkdf
+from .ledger import StateStore
 from .oasp import Route, SentryActuator, SentryObserver, SupervisorMiddleware
 from .root import Firmware, ManufacturerCA, SiliconRoot
 
@@ -63,6 +65,7 @@ def default_policy(measurement: str, observer: str | list[str] = "obs-main", hig
                 "constraints": {"amount": {"type": "number", "max": 1000, "min": 0}, "currency": {"in": ["USD"]}, "destination": {"regex": r"acct-[0-9]{6}"}},
                 "requirement": {"mode": "observer", "observer": observer, "max_risk": 0.3},
                 "rate_limit": {"max": 3, "window_s": 60},
+                "budget": {"key": "pay-usd-hourly", "param": "amount", "limit": 2000, "window_s": 3600},
                 "egress": {"host": API_HOST, "port": 443, "protocol": "rest", "access": "read-write"},
             },
             {
@@ -128,6 +131,39 @@ class Node:
     actuator: SentryActuator
     supervisor: SupervisorMiddleware
     notes: list[str] = field(default_factory=list)
+    state_dir: str | None = None
+    gate_key: SigningKey | None = None
+
+    # -- restart ---------------------------------------------------------------------------
+
+    def restart(self) -> "Node":
+        """Rebuild the gate, the endpoints and the supervisor from durable state, as after a power loss.
+
+        The gate's signing key is DICE-style (derived, not stored), so the same code gets the same
+        key back; the policy is re-loaded from its signed document; replay state, holds, rate
+        windows, reservations and the endpoint's consumed set come back from the stores. The
+        audit log is a fresh chain (its export/verify path is the durable record).
+        """
+        gate_store, ep_store = _stores(self.state_dir)
+        gate = PolicyGate(
+            self.verifier.public,
+            self.governance.public,
+            self.clock,
+            observers={"obs-main": self.observer.public, "sentry": self.sentry.public},
+            registries={"wm-registry": self.registry.public},
+            approvers={"ops-lead": self.approver_key.public},
+            key=self.gate_key,
+            store=gate_store,
+        )
+        gate.load_policy(self.signed_policy)
+        endpoints = _endpoints(gate, self.clock, ep_store)
+        actuator = SentryActuator(gate.audit)
+        supervisor = SupervisorMiddleware(gate, self.clock, sentry=self.sentry, actuator=actuator)
+        for route in default_routes():
+            supervisor.add_route(route)
+        self.gate, self.endpoints, self.actuator, self.supervisor = gate, endpoints, actuator, supervisor
+        self.notes.append("restarted from durable state")
+        return self
 
     # -- happy path --------------------------------------------------------------------
 
@@ -157,9 +193,26 @@ class Node:
         return self.gate.approve(approval)
 
 
-def build_node(*, clock: SimClock | None = None, rollback_protection: bool = True, observer: str | list[str] = "obs-main", high_authority_observer: str | list[str] | None = None) -> Node:
+def _stores(state_dir: str | None) -> tuple[StateStore, StateStore]:
+    if state_dir is None:
+        return StateStore(None), StateStore(None)
+    os.makedirs(state_dir, exist_ok=True)
+    return StateStore(os.path.join(state_dir, "gate-state.json")), StateStore(os.path.join(state_dir, "endpoint-state.json"))
+
+
+def _endpoints(gate: PolicyGate, clock: SimClock, store: StateStore) -> EndpointRegistry:
+    """Endpoints trust the gate's key, bind to its policy epoch, and commit at the gate before executing."""
+    endpoints = EndpointRegistry(gate.public, clock, gate.audit, name="endpoint", store=store, on_commit=gate.commit)
+    endpoints.set_policy_epoch(gate.signed_epoch())
+    for name, handler in stub_handlers().items():
+        endpoints.register(name, handler)
+    return endpoints
+
+
+def build_node(*, clock: SimClock | None = None, rollback_protection: bool = True, observer: str | list[str] = "obs-main", high_authority_observer: str | list[str] | None = None, state_dir: str | None = None) -> Node:
     """Build a node. ``observer="sentry"`` makes the policy require NVIDIA Sentry's verdict (the OASP path);
-    ``high_authority_observer=["sentry", "obs-main"]`` makes human-held actions demand both witnesses."""
+    ``high_authority_observer=["sentry", "obs-main"]`` makes human-held actions demand both witnesses;
+    ``state_dir`` puts the gate's and the endpoints' transactional state on disk so ``Node.restart()`` is meaningful."""
     clock = clock or SimClock()
     cpu_vendor, gpu_vendor = ManufacturerCA("cpu-vendor"), ManufacturerCA("gpu-vendor")
     cpu = SiliconRoot("cpu-tee", "CPU-0001", cpu_vendor, rollback_protection=rollback_protection)
@@ -180,6 +233,11 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
     sentry = SentryObserver("sentry", clock)
     registry = StubProvenanceRegistry("wm-registry", clock)
     approver_key = SigningKey.generate()
+    # The gate's key is derived the way DICE derives an alias key — from what booted — so a restart of
+    # the same code yields the same key instead of a new one. (In silicon the input is the secret
+    # CDI; here it is the two chips' certified alias identities, which is enough for a simulation.)
+    gate_key = SigningKey.from_seed(hkdf(bytes.fromhex(cpu.alias_cert["payload"]["subject_pub"]) + bytes.fromhex(gpu.alias_cert["payload"]["subject_pub"]), b"gate-signing-key", 32))
+    gate_store, ep_store = _stores(state_dir)
     gate = PolicyGate(
         verifier.public,
         governance.public,
@@ -187,20 +245,20 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
         observers={"obs-main": obs_main.public, "sentry": sentry.public},
         registries={"wm-registry": registry.public},
         approvers={"ops-lead": approver_key.public},
+        key=gate_key,
+        store=gate_store,
     )
     signed_policy = governance.policy(default_policy(measurement, observer, high_authority_observer))
     gate.load_policy(signed_policy)
 
-    endpoints = EndpointRegistry(gate.public, clock, gate.audit)
-    for name, handler in stub_handlers().items():
-        endpoints.register(name, handler)
+    endpoints = _endpoints(gate, clock, ep_store)
 
     actuator = SentryActuator(gate.audit)
     supervisor = SupervisorMiddleware(gate, clock, sentry=sentry, actuator=actuator)
     for route in default_routes():
         supervisor.add_route(route)
 
-    return Node(clock, cpu_vendor, gpu_vendor, cpu, gpu, governance, verifier, obs_main, registry, approver_key, gate, endpoints, measurement, signed_policy, signed_reference, sentry, actuator, supervisor)
+    return Node(clock, cpu_vendor, gpu_vendor, cpu, gpu, governance, verifier, obs_main, registry, approver_key, gate, endpoints, measurement, signed_policy, signed_reference, sentry, actuator, supervisor, state_dir=state_dir, gate_key=gate_key)
 
 
 def build_oasp_node(*, clock: SimClock | None = None, observer: str | list[str] = "sentry", high_authority_observer: str | list[str] | None = None, second_witness: bool = False) -> Node:

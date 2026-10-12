@@ -23,10 +23,17 @@ chokepoint even for callers that try to go around it.
 
 Every decision — allow, deny, hold, approve — is appended to the signed
 audit trail before the result is returned.
+
+Since the October 2026 review (``docs/REVIEW-2026-10.md``) the gate is also
+**transactional** (``ledger.py``): replay state, holds and rate windows live in
+a durable store; a rule may carry a shared ``budget`` that is *reserved* when
+the request is allowed and *committed* by the endpoint before it executes;
+check → reserve → mint is one critical section under one lock; and every
+ticket names the policy epoch that issued it. A ticket is never the whole
+authorization — it is the visible half of a reservation the ledger holds.
 """
 from __future__ import annotations
 
-import collections
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -36,6 +43,7 @@ from .audit import AuditLog
 from .canon import digest
 from .clock import SimClock
 from .keys import SigningKey, VerifyKey, random_nonce, require_signed, sign_object, verify_object
+from .ledger import DurableState, StateStore
 from .policy import select_rule, validate_policy
 
 
@@ -81,12 +89,14 @@ class PolicyGate:
         approvers: dict[str, VerifyKey] | None = None,
         ticket_ttl: float = 60.0,
         name: str = "gate",
+        key: SigningKey | None = None,
+        store: StateStore | None = None,
     ):
         self.name = name
         self.verifier = verifier
         self.governance = governance
         self.clock = clock
-        self._key = SigningKey.generate()
+        self._key = key or SigningKey.generate()
         self.audit = audit or AuditLog(self._key, clock)
         self.observers = dict(observers or {})
         self.registries = dict(registries or {})
@@ -94,9 +104,7 @@ class PolicyGate:
         self.ticket_ttl = ticket_ttl
         self.policy: dict | None = None
         self.policy_id: str | None = None
-        self._allows: dict[tuple[str, str], collections.deque] = collections.defaultdict(collections.deque)
-        self._holds: dict[str, dict] = {}
-        self._seen_requests: set[str] = set()
+        self.state = DurableState(store)
 
     @property
     def public(self) -> VerifyKey:
@@ -114,18 +122,29 @@ class PolicyGate:
         self.policy_id = digest(policy)[:16]
         self._log("gate.policy_loaded", policy_id=self.policy_id, rules=len(policy["rules"]))
 
+    def signed_epoch(self) -> dict:
+        """The policy epoch endpoints bind tickets to. Re-issued after every ``load_policy``."""
+        if self.policy_id is None:
+            raise ValueError("no policy loaded")
+        return sign_object(self._key, {"type": "policy-epoch", "gate": self.name, "policy_id": self.policy_id, "issued_at": self.clock.now()})
+
     # -- the decision --------------------------------------------------------------------
 
     def request(self, req: dict) -> GateResult:
+        """One decision is one critical section: replay check, policy, witnesses, budget reservation and ticket."""
+        with self.state.lock:
+            return self._request(req)
+
+    def _request(self, req: dict) -> GateResult:
         now = self.clock.now()
         try:
             rh = request_hash(req)
         except (KeyError, TypeError):
             return self._deny("", ["request.malformed"], action="?", measurement="?")
         action, measurement = req["action"], req["measurement"]
-        if rh in self._seen_requests:
+        if self.state.seen_request(rh):
             return self._deny(rh, ["request.replayed"], action=action, measurement=measurement)
-        self._seen_requests.add(rh)
+        self.state.mark_request(rh, now)
         reasons: list[str] = []
 
         # 1. attestation
@@ -167,20 +186,24 @@ class PolicyGate:
         # 4. budget and human hold
         limit = rule.get("rate_limit")
         if limit is not None:
-            window = self._allows[(measurement, action)]
-            while window and window[0] < now - limit["window_s"]:
-                window.popleft()
+            window = self.state.window(f"{measurement}|{action}")
+            window[:] = [t for t in window if t >= now - limit["window_s"]]
             if len(window) >= limit["max"]:
                 return self._deny(rh, ["rate.limit"], action=action, measurement=measurement, rule=rule["id"])
         if requirement["mode"] == "human":
             hold_id = random_nonce(8)
-            self._holds[hold_id] = {"request_hash": rh, "core": request_core(req), "expires_at": now + self.policy["hold_ttl_s"], "rule": rule["id"]}
+            self.state.holds[hold_id] = {"request_hash": rh, "core": request_core(req), "expires_at": now + self.policy["hold_ttl_s"], "rule": rule["id"]}
+            self.state.save()
             self._log("gate.decision", decision="hold", request_hash=rh, action=action, measurement=measurement, rule=rule["id"], hold_id=hold_id)
             return GateResult(Decision.HOLD, ["human.approval_required"], rh, hold_id=hold_id, rule_id=rule["id"])
         return self._allow(req, rh, rule, now)
 
     def approve(self, approval: dict) -> GateResult:
         """Release a hold. ``approval`` is signed by a registered approver and names the hold *and* the request hash."""
+        with self.state.lock:
+            return self._approve(approval)
+
+    def _approve(self, approval: dict) -> GateResult:
         now = self.clock.now()
         body = approval.get("payload", {}) if isinstance(approval, dict) else {}
         approver = body.get("approver")
@@ -188,15 +211,17 @@ class PolicyGate:
         hold_id = body.get("hold_id", "")
         if pub is None or not verify_object(approval, pub) or body.get("type") != "approval":
             return self._deny(hold_id, ["approval.untrusted"], action="approve", measurement="-")
-        hold = self._holds.get(hold_id)
+        hold = self.state.holds.get(hold_id)
         if hold is None:
             return self._deny(hold_id, ["approval.unknown_hold"], action="approve", measurement="-")
         if body.get("request_hash") != hold["request_hash"]:
             return self._deny(hold_id, ["approval.request_mismatch"], action="approve", measurement="-")
         if now > hold["expires_at"] or body.get("expires_at", now) < now:
-            self._holds.pop(hold_id, None)
+            self.state.holds.pop(hold_id, None)
+            self.state.save()
             return self._deny(hold_id, ["approval.expired"], action="approve", measurement="-")
-        self._holds.pop(hold_id)
+        self.state.holds.pop(hold_id)
+        self.state.save()
         core = hold["core"]
         rule = next(r for r in self.policy["rules"] if r["id"] == hold["rule"])
         self._log("gate.approved", hold_id=hold_id, approver=approver, request_hash=hold["request_hash"])
@@ -261,23 +286,67 @@ class PolicyGate:
 
     def _allow(self, core_like: dict, rh: str, rule: dict, now: float) -> GateResult:
         core = request_core(core_like)
-        ticket = sign_object(
-            self._key,
-            {
-                "type": "action-ticket",
-                "ticket_id": random_nonce(16),
-                "request_hash": rh,
-                "action": core["action"],
-                "params_digest": digest(core["params"]),
-                "measurement": core["measurement"],
-                "rule": rule["id"],
-                "issued_at": now,
-                "expires_at": now + self.ticket_ttl,
-            },
-        )
-        self._allows[(core["measurement"], core["action"])].append(now)
-        self._log("gate.decision", decision="allow", request_hash=rh, action=core["action"], measurement=core["measurement"], rule=rule["id"], ticket_id=ticket["payload"]["ticket_id"])
+        payload: dict[str, Any] = {
+            "type": "action-ticket",
+            "ticket_id": random_nonce(16),
+            "request_hash": rh,
+            "action": core["action"],
+            "params_digest": digest(core["params"]),
+            "measurement": core["measurement"],
+            "rule": rule["id"],
+            "policy_id": self.policy_id,
+            "issued_at": now,
+            "expires_at": now + self.ticket_ttl,
+        }
+        if "endpoint" in rule:
+            payload["endpoint"] = rule["endpoint"]
+        budget = rule.get("budget")
+        if budget is not None:
+            amount = core["params"].get(budget["param"])
+            if not isinstance(amount, (int, float)) or isinstance(amount, bool) or amount < 0:
+                return self._deny(rh, ["budget.amount_invalid"], action=core["action"], measurement=core["measurement"], rule=rule["id"])
+            rid = self.state.reserve(budget["key"], float(amount), budget["limit"], budget["window_s"], now, self.ticket_ttl)
+            if rid is None:
+                return self._deny(rh, ["budget.exceeded"], action=core["action"], measurement=core["measurement"], rule=rule["id"])
+            payload["budget_key"] = budget["key"]
+            payload["reservation"] = rid
+        ticket = sign_object(self._key, payload)
+        self.state.window(f"{core['measurement']}|{core['action']}").append(now)
+        self.state.save()
+        self._log("gate.decision", decision="allow", request_hash=rh, action=core["action"], measurement=core["measurement"], rule=rule["id"], ticket_id=payload["ticket_id"], reservation=payload.get("reservation"))
         return GateResult(Decision.ALLOW, [], rh, ticket=ticket, rule_id=rule["id"])
+
+    # -- commit / release: the endpoint's half of the transaction ------------------------
+
+    def commit(self, ticket: Any) -> bool:
+        """Commit the reservation a ticket carries. Called by the endpoint *before* it executes.
+
+        False means the endpoint must not execute: the ticket is not the gate's, or the
+        reservation is unknown, already committed, released, or expired.
+        """
+        with self.state.lock:
+            if not verify_object(ticket, self.public) or ticket["payload"].get("type") != "action-ticket":
+                self._log("gate.commit", ok=False, reason="ticket.signature")
+                return False
+            p = ticket["payload"]
+            if "reservation" not in p:
+                self._log("gate.commit", ok=True, ticket_id=p["ticket_id"], reservation=None)
+                return True  # nothing to charge; the ticket's own checks are the endpoint's job
+            ok = self.state.commit(p["budget_key"], p["reservation"], self.clock.now())
+            self._log("gate.commit", ok=ok, ticket_id=p["ticket_id"], reservation=p["reservation"], budget=p["budget_key"])
+            return ok
+
+    def release(self, ticket: Any) -> bool:
+        """Give an unexecuted reservation back early (expiry does the same thing later)."""
+        with self.state.lock:
+            if not verify_object(ticket, self.public):
+                return False
+            p = ticket["payload"]
+            if "reservation" not in p:
+                return False
+            ok = self.state.release(p["budget_key"], p["reservation"])
+            self._log("gate.release", ok=ok, ticket_id=p["ticket_id"], reservation=p["reservation"], budget=p["budget_key"])
+            return ok
 
     def _deny(self, rh: str, reasons: list[str], *, action: str, measurement: str, rule: str | None = None) -> GateResult:
         self._log("gate.decision", decision="deny", request_hash=rh, action=action, measurement=measurement, rule=rule, reasons=reasons)

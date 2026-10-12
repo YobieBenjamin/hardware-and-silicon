@@ -16,7 +16,10 @@ to live *below* the model, because anything above it can be stripped out:
    workload and every consequential action endpoint (payments, mail, shell,
    HTTP, weight export), with parameter constraints, rate limits, human holds,
    and one-time **action tickets** so an endpoint executes nothing the gate did
-   not admit;
+   not admit — and, since the October 2026 design review, **transactional**:
+   shared budgets are reserved at allow and committed at the endpoint before it
+   acts, replay state survives restart, and tickets are bound to a policy epoch
+   (`ledger.py`, `docs/REVIEW-2026-10.md`);
 4. **lane interfaces**: the gate consumes signed *observer assertions* from the
    Layer 3 early-warning lane (the `safety` repo) and signed *provenance
    assertions* from the Layer 2 lane (the `Watermark` repo) — and does not
@@ -27,7 +30,7 @@ to live *below* the model, because anything above it can be stripped out:
    *supervisor middleware*, OpenShell `network_policies` derived from the signed gate
    policy, NVIDIA Sentry (BlueField-4) as a Layer 3 witness and as the quarantine
    actuator, and an OCSF-shaped export of the audit trail (`docs/NVIDIA.md`);
-7. an **attack harness**: 66 attacks across every layer plus 10 baselines, each run
+7. an **attack harness**: 75 attacks across every layer plus 12 baselines, each run
    against a freshly built node, reported with the reason code the stack produced.
 
 ```
@@ -63,7 +66,7 @@ See [`docs/NVIDIA.md`](docs/NVIDIA.md).
 
 ```bash
 git clone https://github.com/YobieBenjamin/hardware-and-silicon && cd hardware-and-silicon
-./run.sh          # venv, install, 37 tests, 66-attack sweep → results/report.md  (under a minute)
+./run.sh          # venv, install, 51 tests, 75-attack sweep → results/report.md  (under a minute)
 ./run.sh demo     # the above, then a narrated end-to-end flow, including the NVIDIA OASP path
 ```
 
@@ -96,14 +99,16 @@ every legitimate baseline goes through.
 | L3 observer interface | 5/5 | missing, forged, stale, re-targeted verdicts; and a genuine high-risk verdict that denies the action |
 | L2 provenance interface | 5/5 | missing assertion, `tampered` verdict, an `exact` assertion for a different body, forged registry signature |
 | Endpoints / tickets | 6/6 | no ticket, replayed ticket, parameters or action swapped after issue, forged ticket, expired ticket |
+| Transactional authorization | 9/9 | a shared budget exhausted; 40 concurrent requests against one budget (exactly 8 pass); a ticket from a superseded policy epoch; a forged epoch; a consumed ticket and a decided request replayed *after a restart from durable state*; the gate unreachable at commit time (the endpoint fails closed); a compromised broker labelling a 25,000 USD payment "reversible" (held anyway); a forged ticket offered for commit |
 | Audit trail | 8/8 | edited record, deleted or reordered entries, truncation past a checkpoint, forged checkpoint, rewritten history (consistency proof fails), inclusion proof for a forged leaf |
 | NVIDIA OASP path | 13/13 | unattested or stale-token sandbox; Sentry drift verdict → deny and quarantine; unverified agent identity; repeated probing trips drift quarantine; ticket shared across sandboxes; weight export routed through the supervisor; an unrouted host passes to OpenShell's policy but the consequential endpoint still refuses without a ticket; with two witnesses required, one high verdict from either side denies, a forged second witness denies, an absent second witness denies, and a high-authority action with only one witness is refused |
 
-The 10 baselines (attest, small payment, large payment held → approved,
+The 12 baselines (attest, small payment, large payment held → approved,
 provenance-backed mail, allow-listed HTTP, audit proofs, a supervised action on the
 OpenShell path, the derived OpenShell policy matching the gate's grants, both
-witnesses agreeing, and the recommended high-authority configuration) all succeed,
-so the gate is not passing by refusing everything.
+witnesses agreeing, the recommended high-authority configuration, a hold that
+survives a restart, and a budget that recovers when an unexecuted ticket expires)
+all succeed, so the gate is not passing by refusing everything.
 
 ## Layout
 
@@ -112,19 +117,26 @@ so the gate is not passing by refusing everything.
 | `hardware_ref/root.py` | L0 | `SiliconRoot`: fused UDS, anti-rollback fuse, extend-only registers, DICE alias key, quote engine, attacker tooling (`forged_quote`) |
 | `hardware_ref/attest.py` | L5 + verifier | `GovernanceRoot` (signs reference values, revocations, policy); `AttestationVerifier` (nonces, cert chain, reference values, composite CPU+GPU binding, tokens) |
 | `hardware_ref/policy.py` | L4 | policy schema and validation (default-deny only), rule selection, parameter constraints |
-| `hardware_ref/gate.py` | L4 | `PolicyGate`: attestation → grant → witnesses → budget → hold/allow; one-time action tickets; approvals |
-| `hardware_ref/endpoints.py` | L4 | `EndpointRegistry`: executes only against a valid, unconsumed, request-bound ticket |
+| `hardware_ref/gate.py` | L4 | `PolicyGate`: attestation → grant → witnesses → budget reservation → hold/allow, as one critical section; one-time action tickets bound to a policy epoch; approvals; commit/release |
+| `hardware_ref/ledger.py` | L4 | `StateStore`, `DurableState`: durable replay store, holds, rate windows, the budget ledger (reserve / commit / release / expiry) and the policy epoch |
+| `hardware_ref/endpoints.py` | L4 | `EndpointRegistry`: executes only against a valid, unconsumed, request-bound, current-epoch ticket; burns it durably and commits the reservation at the gate before acting |
 | `hardware_ref/assertions.py` | L2/L3 interface | observer and provenance assertion formats; stub producers used by the harness |
 | `hardware_ref/oasp.py` | NVIDIA OASP | `SupervisorMiddleware` (gate on OpenShell's request path), `to_openshell_network_policy`, `SentryObserver`, `SentryActuator`, `to_ocsf` |
 | `hardware_ref/audit.py` | audit | signed hash chain, RFC 6962 Merkle root, checkpoints, inclusion and consistency proofs, offline verifier |
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
 | `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (66 attacks + 10 baselines) and the sweep runner / report writer |
 | `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
-| `tests/` | — | 37 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path and the full sweep |
+| `tests/` | — | 51 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path, the transactional contract (`test_transactional.py`) and the full sweep |
 
 ## Blog
 
-[A Multi-Layer Approach to AI Safety](blog/01-a-multi-layer-approach-to-ai-safety.md) — why every layer above the chip is a witness and only silicon can be the lock, why the design targets NVIDIA's platform (CUDA, GPU attestation, BlueField-4), and the clues to the silicon design that the next post will lay out in full. In [`blog/`](blog/) as Markdown and Word (CC BY-NC 4.0, see License below).
+- [A Multi-Layer Approach to AI Safety](blog/01-a-multi-layer-approach-to-ai-safety.md) — why every layer above the chip is a witness and only silicon can be the lock, why the design targets NVIDIA's platform (CUDA, GPU attestation, BlueField-4), and the clues to the silicon design.
+- **The Chip That Says No**, a three-part series:
+  1. [Part 1, plain English](blog/02-the-chip-that-says-no-1-plain-english.md) — the drone and the school; why AI cannot police AI; the hot stove; the brain's three tricks; "can you undo it?"; STOP but never GO.
+  2. [Part 2, with the technical detail](blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) — the final common path, reference monitors, the amygdala's low road, efference copy, the veto window, reversibility, monotone alarms, the formal claim.
+  3. [Part 3, the silicon design](blog/04-the-chip-that-says-no-3-the-silicon-design.md) — the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, where the bits live, the authorization protocol, the policy controller and its enforcement points, three kinds of provenance, the assumptions register, the experiment program.
+
+All in [`blog/`](blog/) as Markdown and Word, with figures (CC BY-NC 4.0, see License below).
 
 The two watermarking posts that lead into it live in the [Watermark](https://github.com/YobieBenjamin/Watermark/tree/main/blog) repository: the plain-English one and the deep technical one.
 
@@ -135,7 +147,10 @@ The two watermarking posts that lead into it live in the [Watermark](https://git
 - [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — adversaries, what each layer defends against, what this reference cannot defend against
 - [`docs/LANES.md`](docs/LANES.md) — the signed-assertion contracts between this repo, `safety` (Layer 3) and `Watermark` (Layer 2)
 - [`docs/SILICON.md`](docs/SILICON.md) — module-by-module mapping to hardware blocks, the properties only silicon gives, and the roadmap to the theoretical chip design
-- [`docs/USAGE.md`](docs/USAGE.md) — CLI, Python API, data formats, extending the policy and the catalogue
+- [`docs/CHIP_DESIGN.md`](docs/CHIP_DESIGN.md) — the chip design as a specification: the contract, the enforcement domain, layer placement, the assumptions register, the policy controller and its enforcement points, provenance, the authorization protocol, claims and hypotheses
+- [`docs/PROTOTYPING.md`](docs/PROTOTYPING.md) — the experiment program: Phase 1 (done, this repo), Phase 2 (DPU and workload attestation), Phase 3 (vendor silicon); tiers, scenarios, hypotheses and what would falsify each
+- [`docs/REVIEW-2026-10.md`](docs/REVIEW-2026-10.md) — the October 2026 design review: seven points, what each changed, and where
+- [`docs/USAGE.md`](docs/USAGE.md) — CLI, Python API, data formats, durable state and restart, extending the policy and the catalogue
 
 ## The three lanes
 

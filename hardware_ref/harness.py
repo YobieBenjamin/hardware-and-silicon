@@ -28,6 +28,7 @@ LAYER_NAMES = {
     "EP": "Endpoints · action tickets",
     "AU": "Audit trail",
     "NV": "NVIDIA OASP path · OpenShell supervisor + Sentry",
+    "TX": "Transactional authorization · budgets, persistence, epochs",
 }
 
 

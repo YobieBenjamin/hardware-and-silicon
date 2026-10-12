@@ -29,6 +29,15 @@ A rule may also carry an ``egress`` block (``host``, ``port``, ``protocol``,
 ``access``) describing the network endpoint the action reaches; it is what
 ``oasp.to_openshell_network_policy`` translates into OpenShell policy.
 
+Two optional blocks were added after the October 2026 review:
+
+* ``budget``: ``{"key": "pay-usd-hourly", "param": "amount", "limit": 2000, "window_s": 3600}``
+  — a shared allowance. The gate reserves ``params[param]`` against ``key`` when it allows
+  the request and the endpoint commits it before executing (``ledger.py``). Several rules
+  may share one key; the allowance is then shared between them.
+* ``endpoint``: the name of the endpoint registry the ticket is valid at, so a ticket for
+  one service cannot be presented to another that happens to offer the same action.
+
 Rules are capability grants: anything not matched by a rule is denied. A
 rule bound to a specific measurement wins over a wildcard rule. In silicon
 this table lives in protected SRAM loaded from a signed image, and "no
@@ -75,6 +84,14 @@ def validate_policy(policy: Any) -> dict:
             raise PolicyError(f"rule {r['id']}: egress needs a host")
         if "provenance" in r and r["provenance"].get("status") not in ("exact",):
             raise PolicyError(f"rule {r['id']}: provenance status must be 'exact'")
+        if "budget" in r:
+            b = r["budget"]
+            if not isinstance(b, dict) or any(k not in b for k in ("key", "param", "limit", "window_s")):
+                raise PolicyError(f"rule {r['id']}: budget needs key, param, limit, window_s")
+            if not (isinstance(b["limit"], (int, float)) and b["limit"] >= 0 and isinstance(b["window_s"], (int, float)) and b["window_s"] > 0):
+                raise PolicyError(f"rule {r['id']}: budget limit/window must be non-negative numbers")
+        if "endpoint" in r and not (isinstance(r["endpoint"], str) and r["endpoint"]):
+            raise PolicyError(f"rule {r['id']}: endpoint must be a name")
     policy.setdefault("observer_freshness_s", 60)
     policy.setdefault("hold_ttl_s", 3600)
     return policy
