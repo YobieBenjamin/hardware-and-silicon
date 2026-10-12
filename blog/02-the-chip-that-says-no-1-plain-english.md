@@ -78,4 +78,4 @@ Each layer on the left already exists in you. Two of the three on the right alre
 
 Part 2 makes the same argument with the names, numbers and papers. Part 3 is the design: what sits on the chip, what sits in the software around it, and what sits in the weapon, the bank or the robot at the far end. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no.
 
-The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/yobiebenjamin/hardware-and-silicon](https://github.com/yobiebenjamin/hardware-and-silicon).
+The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/YobieBenjamin/hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon).

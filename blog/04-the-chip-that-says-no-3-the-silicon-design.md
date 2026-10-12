@@ -543,6 +543,6 @@ This record is what the provenance lane can anchor to and what the gate can requ
 ## Run it yourself
 
 ```
-git clone https://github.com/yobiebenjamin/hardware-and-silicon
+git clone https://github.com/YobieBenjamin/hardware-and-silicon
 cd hardware-and-silicon && ./run.sh    # 51 tests, 75 attacks, 12 baselines, under a minute
 ```
