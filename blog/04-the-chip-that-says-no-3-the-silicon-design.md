@@ -202,7 +202,7 @@ The register is also where the hard residual lives. A sentence that persuades a 
 
 ## Where this goes next
 
-The action side is the guarantee, and it is the half that exists today: the gate, the ledger and the comparator run in the reference stack, and the five demonstrations my colleague asked for are its tests. [Part 4](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) is the other half: what keeps the model in its box and makes its outputs traceable, how the layers talk to each other, one request walked end to end, and the Safety Governor, the chip that pairs with each NVIDIA GPU through the rack's own boards and needs nothing from NVIDIA to do its job. It ends with the experiment program and the honest list of what none of this solves.
+The action side is the guarantee, and it is the half that exists today: the gate, the ledger and the comparator run in the reference stack, and the five demonstrations my colleague asked for are its tests. [Part 4](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) is the other half: what keeps the model in its box and makes its outputs traceable, how the layers talk to each other, one request walked end to end, and the Safety Governor, the chip that pairs with each NVIDIA GPU through the rack's own boards and needs nothing from NVIDIA's silicon to do its job. It ends with the experiment program and the honest list of what none of this solves.
 
 ## Further reading
 
