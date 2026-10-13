@@ -43,7 +43,7 @@ function inline(text, base = {}) {
       const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(tok);
       runs.push(new ExternalHyperlink({
         link: mm[2],
-        children: [new TextRun({ text: mm[1], ...base, style: "Hyperlink" })],
+        children: inline(mm[1], { ...base, style: "Hyperlink" }),   // link text may hold *italics*, **bold**, `code`
       }));
     } else push(tok.slice(1, -1), { italics: true });
     last = m.index + tok.length;

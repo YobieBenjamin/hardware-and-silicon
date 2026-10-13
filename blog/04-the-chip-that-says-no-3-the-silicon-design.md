@@ -1,8 +1,8 @@
 # The Chip That Says No
 
-By Yobie Benjamin · October 12, 2026 · Part 3 of 3: the silicon design
+By Yobie Benjamin · yobie AT ieee DOT org · linkedin.com/in/yobie · October 12, 2026 · Part 3 of 3: the silicon design
 
-> Parts 1 and 2 made the argument. The first post in this repository laid out the layer model and shipped the reference stack. This is the design that post promised: where each layer goes in silicon, the theory each piece rests on, how the pieces talk to each other and to the model, how they sit against the GPU, the CPU, memory and storage, and the experiments that would prove or disprove each claim. A chip designer went through my first draft and corrected it in seven places. His corrections are built into this one, and the biggest of them changed the shape of the design. The promise is narrower than my first draft claimed, and stronger, because it is a security contract at the point of action rather than a promise about a chip. I will keep the technical depth, and I will explain every piece of it with something you can picture.
+> [Parts 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) made the argument. [The first post in this repository](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/01-a-multi-layer-approach-to-ai-safety.md) laid out the layer model and shipped the reference stack. This is the design that post promised: where each layer goes in silicon, the theory each piece rests on, how the pieces talk to each other and to the model, how they sit against the GPU, the CPU, memory and storage, and the experiments that would prove or disprove each claim. A chip designer went through my first draft and corrected it in seven places. His corrections are built into this one, and the biggest of them changed the shape of the design. The promise is narrower than my first draft claimed, and stronger, because it is a security contract at the point of action rather than a promise about a chip. I will keep the technical depth, and I will explain every piece of it with something you can picture. Every product, paper and standard I name is linked where I name it, and the links were checked on the day of posting.
 
 ## Where we are
 
@@ -17,21 +17,21 @@ The layer model from the first post, which the rest of this design is placed on.
 
 | Layer | What it does | Where it lives |
 | --- | --- | --- |
-| 5 · Governance root | Signs the rulebook, the list of approved firmware and the revocations. Separate from the chip vendor on purpose | this repo (`attest.py`) |
-| 4 · Control plane | The default-deny gate on the only way out: attestation check, rulebook, witnesses, budget, human holds, one-time tickets, audit trail | this repo (`gate.py`, `ledger.py`, `endpoints.py`, `audit.py`) |
-| 3 · Observers | Fast, cheap early-warning verdicts about one request, signed, used as witnesses | `autonomic-graph-regulation`; NVIDIA Sentry |
-| 2 · Provenance | Watermark, hardened detector, signed registry; emits a signed verdict about where text came from | `Watermark` |
+| 5 · Governance root | Signs the rulebook, the list of approved firmware and the revocations. Separate from the chip vendor on purpose | [this repo](https://github.com/YobieBenjamin/hardware-and-silicon) ([`attest.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attest.py)) |
+| 4 · Control plane | The default-deny gate on the only way out: attestation check, rulebook, witnesses, budget, human holds, one-time tickets, audit trail | this repo ([`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py), [`endpoints.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/endpoints.py), [`audit.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/audit.py)) |
+| 3 · Observers | Fast, cheap early-warning verdicts about one request, signed, used as witnesses | [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation); [NVIDIA Sentry](https://nvidianews.nvidia.com/news/open-agent-safety-platform) |
+| 2 · Provenance | Watermark, hardened detector, signed registry; emits a signed verdict about where text came from | [`Watermark`](https://github.com/YobieBenjamin/Watermark) |
 | 1 · Model and runtime | The model, CUDA, the serving stack, the sandbox | NVIDIA; treated as untrusted |
-| 0 · Silicon root of trust | A secret fused into the chip, a counter that only counts up, measurement registers that can only be added to, a key derived from what booted, a quote engine | this repo (`root.py`); the GPU's and the DPU's own roots |
+| 0 · Silicon root of trust | A secret fused into the chip, a counter that only counts up, measurement registers that can only be added to, a key derived from what booted, a quote engine | this repo ([`root.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/root.py)); the GPU's and the DPU's own roots |
 
 And the crosswalk to the brain tiers of Parts 1 and 2, so the two vocabularies stay in step:
 
 | Brain tier (Parts 1 and 2) | This design | Repo module |
 | --- | --- | --- |
-| Reflex: fastest, dumbest, cannot be talked out of its job | The endpoint comparator: the ticket check inside the device that acts | `endpoints.py` |
-| Deep alarm system: default deny, fast global stop | The Layer 4 gate | `gate.py`, `ledger.py` |
-| Thinking brain: slow, deliberate, overrides with effort | The governance root and the approvers (Layer 5) | `attest.py`, approvals in `gate.py` |
-| Senses and alarms: may raise, never clear | The observer and provenance lanes (Layers 3 and 2) | `assertions.py`, `oasp.py` |
+| Reflex: fastest, dumbest, cannot be talked out of its job | The endpoint comparator: the ticket check inside the device that acts | [`endpoints.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/endpoints.py) |
+| Deep alarm system: default deny, fast global stop | The Layer 4 gate | [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py) |
+| Thinking brain: slow, deliberate, overrides with effort | The governance root and the approvers (Layer 5) | [`attest.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attest.py), approvals in [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py) |
+| Senses and alarms: may raise, never clear | The observer and provenance lanes (Layers 3 and 2) | [`assertions.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/assertions.py), [`oasp.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/oasp.py) |
 
 ## What changed after the review
 
@@ -74,7 +74,7 @@ The first post gave three placements for the Layer 4 block (DPU, board-level con
 | Placement | Credible role | Principal limitation |
 | --- | --- | --- |
 | **E · Gate at the action endpoint** (the payment switch, the guidance chip, the robot controller, the gateway) | Reject unauthorized operations before they commit; re-check with the device's own sensors; define the safe move | Protects only endpoints that enforce it; needs its inputs (lists, maps, sensors) to be trustworthy |
-| **A · DPU on the node's path** (BlueField-4 with DOCA, beside NVIDIA Sentry) | Enforce policy on every packet and storage request that crosses that path; own root of trust; isolated from the host | Other paths bypass it: PCIe peer-to-peer and NVLink between GPUs are not on the DPU's path |
+| **A · DPU on the node's path** ([BlueField-4](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) with [DOCA](https://developer.nvidia.com/networking/doca), beside [NVIDIA Sentry](https://developer.nvidia.com/blog/nvidia-open-agent-safety-platform-a-reference-for-continuous-in-silicon-agent-monitoring/)) | Enforce policy on every packet and storage request that crosses that path; own root of trust; isolated from the host | Other paths bypass it: PCIe peer-to-peer and NVLink between GPUs are not on the DPU's path |
 | **B · Board-level safety controller** | Keys, policy, watchdogs, authorization, protected logs; gate the GPU's PCIe and NVLink exits on a custom carrier board | Needs hardware cooperation to block other components' traffic; bandwidth and latency on the hot path |
 | **C · Controller integrated into the GPU and its fabric** | Control accesses at hardware enforcement points inside the package: copy engines, peer mappings, link keys | Requires the vendor |
 
@@ -100,10 +100,10 @@ A model's data lives in eight places, and it changes form at almost every one. T
 
 | Station | What is there | Form | Trust domain | Gate |
 | --- | --- | --- | --- | --- |
-| 1 · Storage at rest | Weights, tokenizer vocabulary, training-data shards, policy images, logs | Encrypted files; weights as safetensors in bf16 or fp8; data as token shards | Keys released only to a verified loader | Yes: decryption bound to attestation (L0) |
-| 2 · CPU | Tokenizer, scheduler, serving stack (vLLM, TensorRT-LLM, SGLang), broker, OpenShell sandbox | Text in; int32 token IDs out; typed requests | CPU TEE (Intel TDX, AMD SEV-SNP, Arm CCA) | No gate on compute; the broker proposes, the gate decides |
+| 1 · Storage at rest | Weights, tokenizer vocabulary, training-data shards, policy images, logs | Encrypted files; weights as [safetensors](https://github.com/safetensors/safetensors) in bf16 or fp8; data as token shards | Keys released only to a verified loader | Yes: decryption bound to attestation (L0) |
+| 2 · CPU | Tokenizer, scheduler, serving stack ([vLLM](https://github.com/vllm-project/vllm), [TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM), [SGLang](https://github.com/sgl-project/sglang)), broker, [OpenShell](https://github.com/NVIDIA/OpenShell) sandbox | Text in; int32 token IDs out; typed requests | CPU TEE (Intel TDX, [AMD SEV-SNP](https://www.amd.com/en/developer/sev.html), [Arm CCA](https://www.arm.com/architecture/security-features/arm-confidential-compute-architecture)) | No gate on compute; the broker proposes, the gate decides |
 | 3 · Host memory | Prompt and output token IDs, request metadata, KV-cache spill | int32 arrays, structs | Encrypted by the CPU TEE; the hypervisor cannot read it | No |
-| 4 · Interconnect | PCIe to host, NIC and NVMe; NVLink to peers; RDMA across nodes; GPUDirect Storage | DMA descriptors, thread-initiated peer loads and stores, link frames | Each link is a boundary crossing | Yes: an enforcement point on each kind of crossing |
+| 4 · Interconnect | PCIe to host, NIC and NVMe; NVLink to peers; [RDMA](https://docs.nvidia.com/cuda/gpudirect-rdma/) across nodes; [GPUDirect Storage](https://docs.nvidia.com/gpudirect-storage/) | DMA descriptors, thread-initiated peer loads and stores, link frames | Each link is a boundary crossing | Yes: an enforcement point on each kind of crossing |
 | 5 · GPU HBM | Weights, KV cache, activations, logits | bf16 / fp8 tensors; paged KV blocks | GPU TEE: hardware firewall, host cannot read | No; the firewall is the protection |
 | 6 · Streaming multiprocessors | Embedding lookup, attention, projections, sampling | Vectors and logits in registers and shared memory | Inside the GPU TEE | No. Compute runs free. |
 | 7 · Output path | Sampled token IDs leaving the GPU | int32 IDs per decode step | Crosses from the GPU TEE to the CPU TEE | Yes: device provenance (hash and sign) |
@@ -115,7 +115,7 @@ Three things in this table carry the design.
 
 The model's thinking (stations 5 and 6) is untouched. No gate sits in the kernel path. That is what keeps the design compatible with trillions of tokens: the hardware's work grows with boundary crossings and actions, not with compute.
 
-Station 4 is where the second review point lands. A copy engine moves data using a work order the hardware processes one at a time. A permission check on a work order is the same kind of operation as an IOMMU lookup, the check every server already does when a device touches memory. But a CUDA kernel can also read and write a neighboring GPU's memory directly, with ordinary loads and stores over NVLink, once peer access is turned on. Those never see a work order. So the enforcement for station 4 is not one checker but several, each at the hardware point the traffic actually passes (the enforcement-point table, below), and any path with no checker is shut by policy rather than assumed safe.
+Station 4 is where the second review point lands. A copy engine moves data using a work order the hardware processes one at a time. A permission check on a work order is the same kind of operation as an IOMMU lookup, the check every server already does when a device touches memory. But a CUDA kernel can also [read and write a neighboring GPU's memory directly](https://docs.nvidia.com/cuda/cuda-programming-guide/index.html), with ordinary loads and stores over NVLink, once peer access is turned on (the programming guide's section on peer-to-peer memory access). Those never see a work order. So the enforcement for station 4 is not one checker but several, each at the hardware point the traffic actually passes (the enforcement-point table, below), and any path with no checker is shut by policy rather than assumed safe.
 
 Training data has a station too. During training, the shards moved into GPU memory pass the same enforcement points as everything else, so the controller can record which dataset a model was trained from, and that record travels with the model's fingerprint.
 
@@ -132,7 +132,7 @@ My first draft bound an action to a form and checked it twice. That is necessary
 - The recipient on the ticket can differ from the recipient at execution, if the binding covers the action but not every field and the destination.
 - A ticket can stay good after the rules that issued it have changed.
 
-So authorization is a transaction in three coordinated steps. This is how `gate.py`, `ledger.py` and `endpoints.py` implement it today:
+So authorization is a transaction in three coordinated steps. This is how [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py) and [`endpoints.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/endpoints.py) implement it today:
 
 ![Authorize, reserve, commit](figures/fig_protocol.png)
 
@@ -152,13 +152,13 @@ In silicon, each of those is a small block. The replay store is a counter that o
 
 ### The gate
 
-**What it is.** The Layer 4 control plane: a default-deny rulebook signed by the governance root, keyed on the software fingerprint (what code is running, never which chip), with typed limits, witness requirements, rate limits, budgets and human holds. It is software today (`gate.py`). In silicon it is a content-addressable memory plus comparators: a rulebook entry is a fingerprint, an action class, a few typed limits and a rate. That is why the latency budget is nanoseconds and why it can sit on the data path at all.
+**What it is.** The Layer 4 control plane: a default-deny rulebook signed by the governance root, keyed on the software fingerprint (what code is running, never which chip), with typed limits, witness requirements, rate limits, budgets and human holds. It is software today ([`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py)). In silicon it is a content-addressable memory plus comparators: a rulebook entry is a fingerprint, an action class, a few typed limits and a rate. That is why the latency budget is nanoseconds and why it can sit on the data path at all.
 
 **Theory.** If every path to an endpoint passes through the gate, and the gate's rulebook can only be changed by the governance root, then the model's power is bounded by the rulebook rather than by the model's manners. Claim: for any model, no action reaches an endpoint without a ticket the gate minted under a rule the governance root signed.
 
-**Every action is authorized.** The rule's `requirement.mode` decides the lane: `auto` (verification and limits are enough; microseconds), `observer` (a fresh Layer 3 verdict under a risk ceiling is required), or `human` (the request is held until an approver signs). That is airport security again. What the traveler says about himself changes nothing. A `risk_class: reversible` field in the request, or a `requirement: auto` field, is ignored, because the rulebook picks the rule from the fingerprint, the action and the limited fields, and from nothing else. The catalogue has an attack for exactly that (`TX.risk_label_ignored`): a 25,000 dollar payment labeled reversible is held like any other.
+**Every action is authorized.** The rule's `requirement.mode` decides the lane: `auto` (verification and limits are enough; microseconds), `observer` (a fresh Layer 3 verdict under a risk ceiling is required), or `human` (the request is held until an approver signs). That is airport security again. What the traveler says about himself changes nothing. A `risk_class: reversible` field in the request, or a `requirement: auto` field, is ignored, because the rulebook picks the rule from the fingerprint, the action and the limited fields, and from nothing else. The [catalogue](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attacks.py) has an attack for exactly that (`TX.risk_label_ignored`): a 25,000 dollar payment labeled reversible is held like any other.
 
-**Witnesses, in the direction biology allows.** Observers (the `autonomic-graph-regulation` repo's early-warning lane; NVIDIA Sentry on the DPU) and the provenance registry (the `Watermark` repo) emit signed verdicts about one request hash with short expiries. The gate consumes them. It never computes them. A verdict can keep the gate shut. It cannot open it. The novelty check from my first draft belongs here too, as a witness: a request whose fields fall outside everything seen before is a good extra reason to stop. It is not a guarantee against dangers nobody listed. Familiar values can form a dangerous combination, and unfamiliar values can be harmless. The review was right that the first draft leaned on it too hard.
+**Witnesses, in the direction biology allows.** Observers (the [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation) repo's early-warning lane; [NVIDIA Sentry](https://nvidianews.nvidia.com/news/open-agent-safety-platform) on the DPU) and the provenance registry (the [`Watermark`](https://github.com/YobieBenjamin/Watermark) repo) emit signed verdicts about one request hash with short expiries. The gate consumes them. It never computes them. A verdict can keep the gate shut. It cannot open it. The novelty check from my first draft belongs here too, as a witness: a request whose fields fall outside everything seen before is a good extra reason to stop. It is not a guarantee against dangers nobody listed. Familiar values can form a dangerous combination, and unfamiliar values can be harmless. The review was right that the first draft leaned on it too hard.
 
 **Interfaces.** Up: the governance root signs its rulebook, allowlists and revocations; approvers release holds. Down: it issues tickets to endpoints and commits their reservations. To the compute side: it accepts typed requests from the broker and verification tokens from the verifier. To the model: none. The model never talks to the gate. The broker does, in a form the model cannot forge.
 
@@ -206,7 +206,7 @@ The compute side keeps the model inside its box, makes its outputs traceable, an
 
 ### Layer 0: the silicon root of trust
 
-**What it is.** Think of a birth certificate burned into the chip at the factory, plus an odometer that only counts up, plus a logbook you can add pages to but never tear pages out of. In hardware terms, the birth certificate is a unique secret fused into the die that only the key-derivation engine can read. The odometer is an anti-rollback fuse counter plus a counter that only counts up. The logbook is a set of measurement registers that can only be extended, never written. Around them sit a ROM-resident DICE engine that derives the signing key from the measurement of what booted, a quote engine, and a random-number generator. On NVIDIA GPUs the vendor's version of this chain covers the VBIOS and the GSP firmware (the GSP is the RISC-V management processor on the die), and the DPU has its own. The reference models both (`root.py`) and binds the GPU's quote inside the CPU TEE's, which is the composite-attestation pattern of NVIDIA confidential computing.
+**What it is.** Think of a birth certificate burned into the chip at the factory, plus an odometer that only counts up, plus a logbook you can add pages to but never tear pages out of. In hardware terms, the birth certificate is a unique secret fused into the die that only the key-derivation engine can read. The odometer is an anti-rollback fuse counter plus a counter that only counts up. The logbook is a set of measurement registers that can only be extended, never written. Around them sit a ROM-resident [DICE](https://trustedcomputinggroup.org/work-groups/dice-architectures/) engine that derives the signing key from the measurement of what booted, a quote engine, and a random-number generator. On NVIDIA GPUs the vendor's version of this chain covers the VBIOS and the GSP firmware (the GSP is the RISC-V management processor on the die), and the DPU has its own. The reference models both ([`root.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/root.py)) and binds the GPU's quote inside the CPU TEE's, which is the composite-attestation pattern of [NVIDIA confidential computing](https://docs.nvidia.com/nvtrust/index.html) and its [attestation service](https://docs.nvidia.com/attestation/index.html).
 
 **Theory.** Trust is monotone upward: nothing can be more trusted than the thing that loaded it. If the bottom of the chain is physics (fuses, ROM), anything the chain reports can be checked against physics rather than against a claim. Claim: a chip with a valid root cannot run modified firmware without the modification appearing in its quote. It also cannot forge a quote for firmware it did not boot, because the key that signs the quote was derived from what it did boot. The house key is cut from the shape of the house. Change the house and the old key no longer fits.
 
@@ -216,11 +216,11 @@ The compute side keeps the model inside its box, makes its outputs traceable, an
 
 ### Layer 1: the measured runtime, in confidential compute
 
-**What it is.** The CPU TEE and the GPU TEE, verified together. The locked room, with an ID check at the door. GPU memory is walled off from the host by hardware firewalls. PCIe traffic is encrypted (Hopper uses encrypted bounce buffers; NVIDIA describes Blackwell as TEE-I/O capable, with protection extended to NVLink). The GPU produces a signed report of the firmware it is running. The reference's permissions are keyed to the workload fingerprint, `H(cpu firmware digest, gpu firmware digest)`. The design extends that fingerprint with the model manifest's digest, so a permission is granted to *this code running this model*, and with the policy image's digest, so every record names the rules in force.
+**What it is.** The CPU TEE and the GPU TEE, verified together. The locked room, with an ID check at the door. GPU memory is walled off from the host by hardware firewalls. PCIe traffic is encrypted. On Hopper that means software-encrypted bounce buffers, and NVLink between GPUs stays unencrypted; on Blackwell the NVLink path is encrypted too, and with a compatible CPU the GPU's TEE-I/O capability replaces the bounce buffers with TDISP/IDE link encryption ([NVIDIA's Secure AI white paper](https://docs.nvidia.com/nvidia-secure-ai-with-blackwell-and-hopper-gpus-whitepaper.pdf) spells out both modes). The GPU produces a signed report of the firmware it is running. The reference's permissions are keyed to the workload fingerprint, `H(cpu firmware digest, gpu firmware digest)`. The design extends that fingerprint with the model manifest's digest, so a permission is granted to *this code running this model*, and with the policy image's digest, so every record names the rules in force.
 
 **Theory.** If the weights decrypt only inside verified hardware whose memory cannot be read from outside, the model is bound to the hardware. Claim: no process outside the verified enclaves reads weights or activations, and every record can be traced to an attestation.
 
-**Interfaces to the GPU and CUDA.** The CUDA driver already cooperates with confidential-computing mode. Kernels run unchanged inside the enclave. Copies between the enclaves take the encrypted path. The CPU TEE and the GPU TEE set up their session with an SPDM-based key exchange on current hardware, and for the job's duration the two enclaves are one trust domain. The weight loader inside the CPU TEE fetches encrypted weights, and the key service releases the key only after both attestations check out.
+**Interfaces to the GPU and CUDA.** The CUDA driver already cooperates with confidential-computing mode ([NVIDIA's H100 write-up](https://developer.nvidia.com/blog/confidential-computing-on-h100-gpus-for-secure-and-trustworthy-ai/) is the plainest description). Kernels run unchanged inside the enclave. Copies between the enclaves take the encrypted path. The CPU TEE and the GPU TEE set up their session with an [SPDM](https://www.dmtf.org/standards/spdm)-based key exchange on current hardware, and for the job's duration the two enclaves are one trust domain. The weight loader inside the CPU TEE fetches encrypted weights, and the key service releases the key only after both attestations check out.
 
 **How it fails.** Side channels. Firmware bugs in the firewall. A compromised loader that runs an unverified model on verified hardware, which is why the model manifest belongs in the fingerprint.
 
@@ -232,7 +232,7 @@ Here is the picture. A big building does not have one guard who personally check
 
 ![A small controller sets policy; checkers at every exit enforce it](figures/fig_package.png)
 
-**What it is.** Two things. First, a small, isolated controller that manages policies, identities, permissions, revocation and exceptions. Its firmware is in the class of a verified kernel such as seL4: a few thousand lines, with its proof assumptions written down. Second, dedicated hardware checkers at every point where a transaction crosses the domain's boundary. The controller does not sit in the data path and does not touch every transaction. It configures the checkers and handles what they refuse. Its state (the permission table, the log head, the metering counters, the policy epoch) lives in its own SRAM and one-time-programmable memory, never in GPU memory or host memory. The only way in is a mailbox that accepts signed requests.
+**What it is.** Two things. First, a small, isolated controller that manages policies, identities, permissions, revocation and exceptions. Its firmware is in the class of a verified kernel such as [seL4](https://sel4.systems/Verification/): a few thousand lines, with its proof assumptions written down. Second, dedicated hardware checkers at every point where a transaction crosses the domain's boundary. The controller does not sit in the data path and does not touch every transaction. It configures the checkers and handles what they refuse. Its state (the permission table, the log head, the metering counters, the policy epoch) lives in its own SRAM and one-time-programmable memory, never in GPU memory or host memory. The only way in is a mailbox that accepts signed requests.
 
 **Theory.** Every effect the GPU has on the world is a transfer that crosses a boundary the hardware can see, at a finite set of points. If a checker sits at each of those points, each checker only passes traffic the controller has issued a permission for, and the controller's policy only changes with a quorum of humans, then unauthorized transfers are blocked for any model running on the GPU. Claim: no byte leaves the domain over any listed path without a permission, no output leaves unsigned, and no policy changes without k-of-n signatures.
 
@@ -242,9 +242,9 @@ Here is the picture. A big building does not have one guard who personally check
 | --- | --- | --- | --- |
 | Copy-engine transfers to host, peers, NIC, NVMe (the loading dock) | The copy engine's descriptor processing | A permission token on every work order; a table lookup like an IOMMU | Proposed; placement C |
 | Thread-initiated loads and stores to a peer GPU (the corridor between buildings) | The GPU MMU's peer mappings and the NVLink port | Peer mappings are created only for roster members; on Blackwell-class hardware the link encryption key is the permission, and a peer outside the roster has no key | Partly exists in confidential-computing mode; policy control is the proposal |
-| PCIe traffic to the host, the NIC and storage | The PCIe port with TEE-I/O / IDE | Link encryption keys issued at attestation; ACS to block unexpected peer-to-peer | Exists on TEE-I/O hardware; policy binding is the proposal |
-| RDMA across nodes (the mail room) | The NIC or DPU (BlueField-4) filter tables | Set only by the controller's signed commands, not by the host kernel; placement A | Exists as DOCA-programmable hardware |
-| GPUDirect Storage (the delivery door) | The storage channel's descriptor path | A permission that names the manifest it may deliver | Proposed |
+| PCIe traffic to the host, the NIC and storage | The PCIe port with [TEE-I/O (TDISP and IDE)](https://www.synopsys.com/articles/tee-device-interface-secure-protocol.html) | Link encryption keys issued at attestation; ACS to block unexpected peer-to-peer | Exists on TEE-I/O hardware; policy binding is the proposal |
+| RDMA across nodes (the mail room) | The NIC or DPU ([BlueField-4](https://www.nvidia.com/en-us/networking/products/data-processing-unit/)) filter tables | Set only by the controller's signed commands, not by the host kernel; placement A | Exists as [DOCA](https://developer.nvidia.com/networking/doca)-programmable hardware |
+| [GPUDirect Storage](https://docs.nvidia.com/gpudirect-storage/) (the delivery door) | The storage channel's descriptor path | A permission that names the manifest it may deliver | Proposed |
 | Display engine, debug ports, JTAG, any path without a checker (the windows) | none | Bricked up by policy, never assumed safe | A policy decision |
 | Host memory outside the enclave | The CPU TEE | Not a valid destination for anything | Exists |
 
@@ -288,7 +288,7 @@ Two consequences. The `prompt_hash` in a device-provenance record is supplied by
 
 ### The sandbox and the broker
 
-**The runtime sandbox** is OpenShell as shipped: each agent in its own container, a Landlock allowlist of file paths locked at creation, a network policy proxy, credentials injected per sandbox, and GPU device access as a line in the policy. It is the playpen. It bounds the process. Its limit is that it lives inside a kernel of tens of millions of lines, and an operator can hot-reload its network policy. So the authority to set policy has to move down to the gate, where changing it takes the governance root. The reference already derives OpenShell's network policy from the signed rulebook (`oasp.py`), so the two cannot drift apart.
+**The runtime sandbox** is [OpenShell](https://github.com/NVIDIA/OpenShell) as shipped: each agent in its own container, a [Landlock](https://docs.kernel.org/userspace-api/landlock.html) allowlist of file paths locked at creation, a network policy proxy, credentials substituted outside the agent so the agent never sees the real ones, and GPU device access as a line in the policy. It is the playpen. It bounds the process. Its limit is that it lives inside a kernel of tens of millions of lines, and [its own documentation](https://docs.nvidia.com/openshell/about/overview) says the network policy is hot-reloadable at runtime. So the authority to set policy has to move down to the gate, where changing it takes the governance root. The reference already derives OpenShell's network policy from the signed rulebook ([`oasp.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/oasp.py)), so the two cannot drift apart.
 
 **The broker** is the OpenShell supervisor middleware with the gate on its request path. It is the clerk who fills out the form. It turns model text into a typed request with a schema, attaches the attestation token and the witness statements, and sends it to the gate. It proposes. It never decides: not the rule, not the risk class, not the lane. A compromised broker can send malformed requests, wrong requests or no requests. It cannot send an approved one. Actions that fit no form are logged and shown to a human, not squeezed into the nearest type.
 
@@ -383,17 +383,17 @@ Targets and estimates, to be replaced by measurements. A badge reader adds a fra
 | Human hold | Per human-held action | Minutes to hours | Deliberate |
 | Policy update ceremony | Rare | Minutes | Nothing |
 
-Two measurements, not one: the controller's own overhead, and the whole protected deployment's, including tail latency, small requests, collective communication, logging pressure and revocation.
+The shape to notice: everything that happens per token costs nothing extra, everything that happens per action costs microseconds, and the only slow rows are the ones that are slow on purpose.
 
 ## The experiment program
 
-Every piece above carries a claim. None of them is proven by this document. What follows is the program that proves or disproves them, reordered after the review so that the contract at the point of action is proved first, because everything else is built to preserve it. Phase 1 is a tabletop model. Phase 2 is a real building with a real burglar. Phase 3 is asking the builder to put the badge readers in the doors.
+Every piece above carries a claim. None of them is proven by this document. What follows is the program that proves or disproves them, in three phases, reordered after the review so that the contract at the point of action is proved first, because everything else is built to preserve it. Phase 1 is a tabletop model. Phase 2 is a real building with a real burglar. Phase 3 is asking the builder to put the badge readers in the doors. The same attack catalogue runs in every phase; a phase is finished when the sweep passes against that phase's hardware.
 
 ![Three phases](figures/fig_phases.png)
 
 **Phase 1, done: the action governor in a benign domain.** The review asked for a first demonstration with the model outside the trusted core and an endpoint gate the host cannot bypass, showing five things. The reference stack now shows all five, in one command, against a simulated payment service:
 
-| Demonstration | Where it is in the catalogue |
+| Demonstration | Where it is in [the catalogue](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attacks.py) |
 | --- | --- |
 | Allowed operations succeed | `baseline.pay_small`, `baseline.pay_large_hold_approve`, `baseline.budget_recovers_after_ticket_expiry` |
 | Forged, altered, expired and replayed approvals fail | `EP.ticket_forged`, `EP.ticket_param_swap`, `EP.ticket_expired`, `EP.ticket_replay`, `L4.approval_*`, `TX.commit_forged_ticket` |
@@ -441,20 +441,24 @@ The reviewer's table, adopted in full.
 
 ## What exists, what is missing, who builds it
 
+Read this as a shopping list. The second column is what you can download or buy today, the third is what still has to be built, and the last is who would build it.
+
 | Piece | Exists today | Missing | Who builds it |
 | --- | --- | --- | --- |
-| Silicon root (L0) | GPU boot ROM, fused keys, measured firmware; the DPU's root; OpenTitan, Pluton, Titan | Public verifiability of the measurement chain | Chip vendors; open-silicon projects |
-| Confidential compute (L1) | Hopper and Blackwell confidential computing, attestation, TEE-I/O on Blackwell; CPU TEEs | Model manifest and policy digest in the fingerprint by default; one report format across vendors | NVIDIA, AMD, Intel; standards bodies |
-| Policy controller + enforcement points | Nothing shipping as a unit; the closest analogs are the GSP, Pluton, BlueField-4's own root, and the hardware-governance proposals from CNAS and the flexHEG group | Permission-checked work orders, roster-bound peer mappings, output signing, metering, k-of-n policy, signed log | Chip vendors with regulators; open-silicon projects |
-| Runtime sandbox | NVIDIA OpenShell (Landlock, egress proxy, credential injection) | Policy-setting authority moved to the gate; attestation of the policy image | NVIDIA, Linux community |
-| Broker | OpenShell supervisor middleware with the gate on its path (`oasp.py`) | Workload attestation of the serving stack; schema discipline across agent frameworks | AI labs, agent-platform vendors |
-| Gate (L4) | `gate.py`, `ledger.py`: rulebook, witnesses, budgets, holds, tickets, epochs, durable state | The same logic as a CAM and comparators on a DPU (Phase 2), then in the GPU (Phase 3) | This repo, then vendors |
-| Endpoint comparator | Drone no-fly zones, fuze safety interlocks, process-plant safety systems, HSMs; `endpoints.py` as the functional reference | Ticket verification, epoch binding, durable used-ticket sets and heartbeat in guidance and payment silicon; per-application safe moves | Effector vendors: fintech, defense, robotics |
-| Governance root and approvers (L5) | `attest.py`; two-person rules; approval workflows | k-of-n key ceremonies with custody split across reference values, revocations and policy | Operators, regulators |
-| Observer lane (L3) | `autonomic-graph-regulation`; NVIDIA Sentry | Probe heads on isolated compute with their own fingerprint | Labs; NVIDIA |
-| Provenance lane (L2) | `Watermark` | A watermark engine in the sampling stage; a registry signer | Labs; vendors |
+| Silicon root (L0) | GPU boot ROM, fused keys, measured firmware; the DPU's root; [OpenTitan](https://opentitan.org/), [Pluton](https://learn.microsoft.com/en-us/windows/security/hardware-security/pluton/microsoft-pluton-security-processor), [Titan](https://cloud.google.com/blog/products/identity-security/titan-in-depth-security-in-plaintext) | Public verifiability of the measurement chain | Chip vendors; open-silicon projects |
+| Confidential compute (L1) | [Hopper and Blackwell confidential computing](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/), [attestation](https://github.com/NVIDIA/nvtrust), TEE-I/O on Blackwell; CPU TEEs | Model manifest and policy digest in the fingerprint by default; one report format across vendors | NVIDIA, AMD, Intel; standards bodies |
+| Policy controller + enforcement points | Nothing shipping as a unit; the closest analogs are the GSP, Pluton, BlueField-4's own root, and the hardware-governance proposals from [CNAS](https://www.cnas.org/publications/reports/secure-governable-chips) and the [flexHEG](https://arxiv.org/abs/2506.15093) group | Permission-checked work orders, roster-bound peer mappings, output signing, metering, k-of-n policy, signed log | Chip vendors with regulators; open-silicon projects |
+| Runtime sandbox | [NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) (Landlock, egress proxy, credential substitution) | Policy-setting authority moved to the gate; attestation of the policy image | NVIDIA, Linux community |
+| Broker | OpenShell supervisor middleware with the gate on its path ([`oasp.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/oasp.py)) | Workload attestation of the serving stack; schema discipline across agent frameworks | AI labs, agent-platform vendors |
+| Gate (L4) | [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py): rulebook, witnesses, budgets, holds, tickets, epochs, durable state | The same logic as a CAM and comparators on a DPU (Phase 2), then in the GPU (Phase 3) | This repo, then vendors |
+| Endpoint comparator | Drone no-fly zones, fuze safety interlocks, process-plant safety systems, HSMs; [`endpoints.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/endpoints.py) as the functional reference | Ticket verification, epoch binding, durable used-ticket sets and heartbeat in guidance and payment silicon; per-application safe moves | Effector vendors: fintech, defense, robotics |
+| Governance root and approvers (L5) | [`attest.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attest.py); two-person rules; approval workflows | k-of-n key ceremonies with custody split across reference values, revocations and policy | Operators, regulators |
+| Observer lane (L3) | [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation); [NVIDIA Sentry](https://nvidianews.nvidia.com/news/open-agent-safety-platform) | Probe heads on isolated compute with their own fingerprint | Labs; NVIDIA |
+| Provenance lane (L2) | [`Watermark`](https://github.com/YobieBenjamin/Watermark) | A watermark engine in the sampling stage; a registry signer | Labs; vendors |
 
 ## What this does not solve
+
+Eight limits, stated so nobody reads more into the contract than it says.
 
 - The semantics gap. A harmful sentence over an allowed channel passes every row of the assumptions register. That is where narrow rulebooks, witnesses and humans live.
 - Input truth. A valid signature does not establish that a recipient is who the registry says, that a map is complete, or that two agreeing sensors are independent. The register makes the dependence explicit. It does not remove it.
@@ -505,7 +509,7 @@ A transaction that matches no row is refused at the checker, and the refusal is 
 
 ## Appendix C: the ticket and the reservation
 
-The ticket as `gate.py` mints it today, with the fields the review added marked. One seat, one show, torn at the door.
+The ticket as [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py) mints it today, with the fields the review added marked. One seat, one show, torn at the door.
 
 | Field | Content |
 | --- | --- |
@@ -539,16 +543,42 @@ This record is what the provenance lane can anchor to and what the gate can requ
 
 ## Further reading
 
-- J. P. Anderson, *Computer Security Technology Planning Study* (1972), the reference-monitor concept.
-- O. Aarne, T. Fist and C. Withers, *Secure, Governable Chips*, Center for a New American Security (2024).
-- D. Dalrymple et al., *Towards Guaranteed Safe AI* (2024): the safety specification, the world model and the verifier are separate, and reliable checking does not remove assumptions about the world.
-- NVIDIA CUDA Programming Guide, multi-GPU systems: direct peer-memory access by GPU threads.
-- NVIDIA Attestation SDK documentation: verification of measured GPU state against reference measurements.
-- The seL4 project's verification assumptions: what the proofs assume about hardware and DMA.
-- IEC 61508 and IEC 61511, functional safety of safety instrumented systems.
-- NVIDIA, "NVIDIA Open Agent Safety Platform" and "Add Runtime Controls to AI Agents with NVIDIA OpenShell" (28 September 2026); [NVIDIA OpenShell on GitHub](https://github.com/nvidia/openshell).
-- RFC 9334 (Remote Attestation Procedures), RFC 6962 (Certificate Transparency), the TCG DICE specifications.
-- This repository: [`docs/CHIP_DESIGN.md`](../docs/CHIP_DESIGN.md) (the design as a specification), [`docs/PROTOTYPING.md`](../docs/PROTOTYPING.md) (the experiment program), [`docs/REVIEW-2026-10.md`](../docs/REVIEW-2026-10.md) (the review and what changed).
+Every link below was checked on the day of posting. The ones behind a publisher's paywall are given as DOIs, which resolve to the paper's page even when the site blocks scripts.
+
+Security and verification:
+
+- J. P. Anderson, [*Computer Security Technology Planning Study*](https://csrc.nist.gov/files/pubs/conference/1998/10/08/proceedings-of-the-21st-nissc-1998/final/docs/early-cs-papers/ande72.pdf), US Air Force ESD-TR-73-51 (1972). The reference-monitor concept.
+- The seL4 project, [*Verification*](https://sel4.systems/Verification/): what the proofs cover and what they assume about hardware and DMA.
+- [IEC 61508](https://webstore.iec.ch/en/publication/5515) and [IEC 61511](https://webstore.iec.ch/en/publication/5527), functional safety of safety instrumented systems.
+- D. Dalrymple et al., [*Towards Guaranteed Safe AI*](https://arxiv.org/abs/2405.06624) (2024). The safety specification, the world model and the verifier are separate, and reliable checking does not remove assumptions about the world.
+
+Hardware governance:
+
+- O. Aarne, T. Fist and C. Withers, [*Secure, Governable Chips*](https://www.cnas.org/publications/reports/secure-governable-chips), Center for a New American Security (2024).
+- J. Petrie, O. Aarne, N. Ammann and D. Dalrymple, [*Flexible Hardware-Enabled Guarantees for AI Compute*](https://arxiv.org/abs/2506.15093) (2025).
+
+NVIDIA, the platform this design sits on:
+
+- [*NVIDIA Secure AI with Blackwell and Hopper GPUs*](https://docs.nvidia.com/nvidia-secure-ai-with-blackwell-and-hopper-gpus-whitepaper.pdf), white paper WP-12554-001 v1.3 (August 2025). Bounce buffers, TDISP/IDE, NVLink encryption on Blackwell, the SPDM session.
+- [*Confidential Computing on NVIDIA H100 GPUs for Secure and Trustworthy AI*](https://developer.nvidia.com/blog/confidential-computing-on-h100-gpus-for-secure-and-trustworthy-ai/), NVIDIA Technical Blog.
+- [NVIDIA Trusted Computing Solutions](https://docs.nvidia.com/nvtrust/index.html), [NVIDIA Attestation](https://docs.nvidia.com/attestation/index.html) and the [nvtrust](https://github.com/NVIDIA/nvtrust) repository: verification of measured GPU state against reference measurements.
+- [CUDA Programming Guide](https://docs.nvidia.com/cuda/cuda-programming-guide/index.html), the section on peer-to-peer memory access: direct loads and stores into another GPU's memory.
+- [GPUDirect RDMA](https://docs.nvidia.com/cuda/gpudirect-rdma/) and [GPUDirect Storage](https://docs.nvidia.com/gpudirect-storage/) documentation.
+- [*NVIDIA Launches Open Agent Safety Platform*](https://nvidianews.nvidia.com/news/open-agent-safety-platform) (September 28, 2026); [*NVIDIA Open Agent Safety Platform: A Reference for Continuous In-Silicon Agent Monitoring*](https://developer.nvidia.com/blog/nvidia-open-agent-safety-platform-a-reference-for-continuous-in-silicon-agent-monitoring/) and [*Add Runtime Controls to AI Agents with NVIDIA OpenShell*](https://developer.nvidia.com/blog/add-runtime-controls-to-ai-agents-with-nvidia-openshell), NVIDIA Technical Blog; [OpenShell on GitHub](https://github.com/NVIDIA/OpenShell) and its [documentation](https://docs.nvidia.com/openshell/about/overview).
+- [BlueField DPUs](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) and the [DOCA](https://developer.nvidia.com/networking/doca) framework; the [Blackwell architecture technical overview](https://resources.nvidia.com/en-us-blackwell-architecture).
+
+Standards and building blocks:
+
+- [RFC 9334](https://www.rfc-editor.org/info/rfc9334/), Remote Attestation Procedures architecture; [RFC 6962](https://www.rfc-editor.org/info/rfc6962/), Certificate Transparency; the [TCG DICE](https://trustedcomputinggroup.org/work-groups/dice-architectures/) architectures; [DMTF SPDM](https://www.dmtf.org/standards/spdm).
+- [TDISP and IDE for PCIe and CXL](https://www.synopsys.com/articles/tee-device-interface-secure-protocol.html), a readable explainer of the PCI-SIG TEE-I/O protocols.
+- [Landlock](https://docs.kernel.org/userspace-api/landlock.html), the Linux kernel's unprivileged access control, which OpenShell uses for its file-path allowlist.
+- Roots of trust in the wild: [OpenTitan](https://opentitan.org/), [Microsoft Pluton](https://learn.microsoft.com/en-us/windows/security/hardware-security/pluton/microsoft-pluton-security-processor), [Google Titan](https://cloud.google.com/blog/products/identity-security/titan-in-depth-security-in-plaintext).
+
+This repository:
+
+- [`docs/CHIP_DESIGN.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/CHIP_DESIGN.md), the design as a specification; [`docs/PROTOTYPING.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/PROTOTYPING.md), the experiment program; [`docs/REVIEW-2026-10.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/REVIEW-2026-10.md), the review and what changed.
+- The companion lanes: [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation) (observers) and [`Watermark`](https://github.com/YobieBenjamin/Watermark) (provenance).
+- [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) of this series, and [the first post](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/01-a-multi-layer-approach-to-ai-safety.md), which laid out the layer model.
 
 ## Run it yourself
 
@@ -556,3 +586,5 @@ This record is what the provenance lane can anchor to and what the gate can requ
 git clone https://github.com/YobieBenjamin/hardware-and-silicon
 cd hardware-and-silicon && ./run.sh    # 51 tests, 75 attacks, 12 baselines, under a minute
 ```
+
+If anyone wants to collaborate on any phase of this, I am here: yobie AT ieee DOT org.
