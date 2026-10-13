@@ -1,6 +1,6 @@
 # The Chip That Says No
 
-By Yobie Benjamin · October 12, 2026 · Part 1 of 3: the plain-English version
+By Yobie Benjamin · October 12, 2026 · Part 1 of 4: the plain-English version
 
 > You cannot trust an AI to police another AI. I have sat in too many meetings where that was the plan. The thing that stops a bad action has to work like a reflex, and it has to live in the chip. There is a way to do this, and this post is the plain-English version of it.
 
@@ -80,6 +80,6 @@ Each layer on the left already exists in you. Two of the three on the right alre
 
 ## Where this goes next
 
-[Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) makes the same argument with the names, numbers and papers. [Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) is the design: what sits on the chip, what sits in the software around it, and what sits in the weapon, the bank or the robot at the far end. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no. All three parts were revised after a chip designer went through the first draft; his corrections made the promise narrower and the design stronger.
+[Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) makes the same argument with the names, numbers and papers. [Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) is the design of the gate and the lock: what sits in the weapon, the bank or the robot at the far end, and how a permission is checked twice. [Part 4](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) is the chip in the rack: one beside every GPU, holding the keys to the doors between them, wired to every other one by a wire that cannot be talked out of its job. It also walks one request all the way through, from a prompt to an action in the world, and shows exactly where the chip gets to say no. All four parts were revised after a chip designer went through the first draft; his corrections made the promise narrower and the design stronger.
 
 I am not asking anyone to trust the AI companies, or the AI. I am asking for a chip that does not care what the AI thinks. The code behind all of it runs today: one command, fifty-one tests, seventy-five attacks, under a minute, at [github.com/YobieBenjamin/hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon).

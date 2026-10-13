@@ -312,11 +312,11 @@ save(fig, "fig_protocol.png")
 # ---------------------------------------------------------------- experiment ladder
 W, H = 10, 4.9
 fig, ax = new_fig(W, H)
-title(ax, H, "Three phases: the action governor first, then attestation and containment, then silicon")
+title(ax, H, "Three phases: the action governor first, then the governor in a real rack, then the vendor asks")
 phases = [
     ("Phase 1 · Action governor (done)", ["hardware_ref: gate, ledger, endpoints", "reserve / commit, durable replay, epochs", "75 attacks + 12 baselines, one command", "Proves: policy and protocol logic", "Cannot prove: tamper-resistance"], "tint"),
-    ("Phase 2 · DPU / FPGA + attestation", ["Controller on BlueField-4 beside Sentry", "Own root of trust, own state", "Workload attestation of the runtime", "Red team holds host root", "Proves: non-bypass on that path"], "main"),
-    ("Phase 3 · Vendor silicon", ["Enforcement points inside the GPU", "Descriptor checks, link keys, peer maps", "Output signing as a driver call", "Same catalogue against RTL simulation", "Proves: the contract at frontier scale"], "plain"),
+    ("Phase 2 · The governor in a real rack", ["Module on the system board / baseboard", "Levers, NVSwitch, PCIe switch, DPU ports", "Loop and fabric across eight boards", "Red team holds host root", "Proves: link-level non-bypass"], "main"),
+    ("Phase 3 · Vendor firmware, then checkers", ["Manifest digest in the attestation report", "Fabric Manager honours signed partitions", "Port disable, halt message, output hash", "Later: in-GPU descriptor checkers", "Proves: the residual closes"], "plain"),
 ]
 bw, bh = 2.95, 1.85
 for i, (t, l, k) in enumerate(phases):
@@ -326,4 +326,36 @@ for i, (t, l, k) in enumerate(phases):
         arrow(ax, (x + bw, 2.5), (x + bw + 0.25, 2.5))
 note(ax, 0.95, "The attack catalogue is the constant: a phase is finished when the same sweep passes against that phase's artefact.")
 save(fig, "fig_phases.png")
+
+# ---------------------------------------------------------------- the governor in the rack
+W, H = 10, 6.4
+fig, ax = new_fig(W, H)
+title(ax, H, "The governor in the rack: one per GPU slot, switches as doors, two wires per tray",
+      "Added through the boards a rack already has. Nothing in the GPU or in CUDA changes.")
+# compute tray container
+box(ax, 0.4, 1.55, 9.2, 3.75, "Compute tray", kind="container", title_size=9.5)
+# system board row
+box(ax, 0.6, 3.55, 1.9, 1.3, "Host CPU (TEE)", ["serving stack, broker", "attestation report"], title_size=9.5, line_size=8)
+box(ax, 2.75, 3.55, 1.75, 1.3, "PCIe switch", ["port enable, ACS", "managed by governor"], title_size=9.5, line_size=8)
+box(ax, 4.75, 3.55, 1.75, 1.3, "DPU / NIC", ["flow tables (DOCA)", "managed by governor"], title_size=9.5, line_size=8)
+box(ax, 6.75, 3.55, 2.65, 1.3, "SAFETY GOVERNOR module", ["fuses · root · verifier · rulebook", "ledger · log · meter · heartbeat", "per-slot levers · switch mgmt"], kind="main", title_size=9.5, line_size=8)
+# baseboard row
+box(ax, 0.6, 1.75, 5.9, 1.45, "GPU baseboard", ["GPU0  GPU1  GPU2  GPU3  GPU4  GPU5  GPU6  GPU7", "NVLink  ═══  NVSwitch × N  (ports managed by governor)"], title_size=9.5, line_size=8.2)
+box(ax, 6.75, 1.75, 2.65, 1.45, "Per slot (× 8)", ["SMBus management bus", "PWRBRK# · PERST# · PWR_EN", "all default to the safe state"], kind="tint", title_size=9.5, line_size=8)
+# arrows: governor to switches and slots
+arrow(ax, (6.75, 4.2), (6.5, 4.2), color=ACCENT)
+elbow(ax, [(7.6, 4.85), (7.6, 5.08), (3.6, 5.08)], color=ACCENT, lw=1.2)
+arrow(ax, (3.6, 5.08), (3.6, 4.87), color=ACCENT)
+arrow(ax, (8.0, 3.55), (8.0, 3.2), color=ACCENT)
+arrow(ax, (6.75, 2.45), (6.5, 2.45), color=ACCENT)
+ax.text(5.6, 5.13, "the governor is the only writer on every switch's management port", fontsize=7.8, color=ACCENT, ha="center", va="bottom")
+# the two wires
+ax.plot([0.4, 8.9], [1.15, 1.15], color=TINT, lw=2.2)
+ax.plot([0.4, 8.9], [0.85, 0.85], color=ACCENT, lw=1.6, linestyle="--")
+ax.text(0.45, 1.22, "halt loop: a current loop through every governor; any open or break halts the rack within 1 ms", fontsize=8.2, color=TINT, va="bottom")
+ax.text(0.45, 0.6, "message fabric: signed, numbered, epoch-stamped; roster, heartbeat, epochs, budgets, checkpoints", fontsize=8.2, color=ACCENT, va="top")
+ax.text(8.95, 1.0, "to every\nother tray", fontsize=7.8, color=QUIET, va="center", ha="left")
+elbow(ax, [(8.0, 1.75), (8.0, 1.15)], color=TINT, lw=1.6)
+elbow(ax, [(8.4, 1.75), (8.4, 0.85)], color=ACCENT, lw=1.2, dashed=True)
+save(fig, "fig_rack.png")
 print("done")

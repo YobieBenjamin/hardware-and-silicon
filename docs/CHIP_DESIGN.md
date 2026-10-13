@@ -1,7 +1,11 @@
 # The chip design — specification
 
-The narrative version is [`blog/04-the-chip-that-says-no-3-the-silicon-design.md`](../blog/04-the-chip-that-says-no-3-the-silicon-design.md).
-This file is the same design stated as a specification: the contract, the boundary, the
+The narrative version is [`blog/04`](../blog/04-the-chip-that-says-no-3-the-silicon-design.md) (the action side) and
+[`blog/05`](../blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) (the compute side and the governor in the rack).
+The silicon realization is a separate project, [safety-governor](https://github.com/YobieBenjamin/safety-governor): one
+governor per NVIDIA GPU, added through the rack's boards, with its own functional model, hypothesis suite (H0 to H16),
+RTL and silicon plan. Placements A, B, C and E below map onto that project's tiers (rack, board-only, integrated).
+This file is the design stated as a specification: the contract, the boundary, the
 blocks, the protocol, the assumptions and the claims, in the order an implementer needs
 them. It supersedes the sketch in `docs/SILICON.md` §3–5 where the two differ; the
 module-to-block map in `docs/SILICON.md` §1 still applies. Revised after the October 2026
@@ -97,7 +101,7 @@ data path. Dedicated checkers at each boundary crossing enforce the capabilities
 Controller blocks: mailbox (only input; signed requests), capability table, peer roster,
 hash-and-sign engine, metering counters, policy store + epoch register, heartbeat timer,
 halt/throttle lines, log engine. State in the controller's own SRAM/OTP, never in HBM or
-host memory. Mailbox command set: `blog/04` Appendix A. Capability schema: Appendix B.
+host memory. Mailbox command set: Appendix A below. Capability schema: Appendix B.
 
 Multi-GPU: mutual attestation at job start builds a roster; checkers pass traffic to roster
 members under a job-lifetime capability and to nothing else; the sampling GPU's controller
@@ -127,6 +131,21 @@ A signature is a detachable record; a watermark is a different tool; neither ope
 ## 7. The authorization protocol
 
 Implemented in `gate.py`, `ledger.py`, `endpoints.py`; figure in `blog/figures/fig_protocol.png`.
+
+The messages between the layers:
+
+| Message | From | To | Carries | What it proves |
+| --- | --- | --- | --- | --- |
+| Attestation evidence and token (the ID card) | Silicon roots; the verifier | The gate | Measurements, chip identity, model manifest digest, policy digest; a short-lived token naming the workload fingerprint | Which hardware, firmware, model and policy are running |
+| Permission (the hall pass) | The policy controller | Enforcement points | Checker, peer, direction, byte budget, expiry, integrity tag | Permission for one class of transfer |
+| Device-provenance record (the signed receipt) | The policy controller | Verifiers, the gate | Chip identity, firmware, model fingerprint, policy epoch, prompt hash (as claimed), output hash, nonce, time, counters | This device signed these bytes |
+| Typed request (the form) | The broker | The gate | Action, typed fields, attestation token, witness statements | What the model proposes, bound to a verified workload |
+| Observer and provenance assertions (the witness statements) | Layers 3 and 2 | The gate | Request hash, risk or status, expiry, signature | A witness spoke about this request |
+| Ticket | The gate | The endpoint | Request hash, action, field digest, fingerprint, rule, policy epoch, endpoint, reservation, expiry | This exact action passed every gate |
+| Commit (the confirmation call) | The endpoint | The gate | Ticket | The reservation is spent; the action is about to happen |
+| Policy image and epoch (the new rulebook edition) | Governance root; the gate | The gate; endpoints | Rulebook, version, expiry, k-of-n signatures; the epoch endpoints bind to | A quorum agreed to these rules |
+| Heartbeat, halt, throttle (the call from headquarters) | Policy authority | Controller, endpoints | Signed validity window or command | The authority is still present, or wants a stop |
+| Log checkpoint (the ledger) | Gate, controller | Transparency log | Merkle root, size, head, signature | The record has not been rewritten |
 
 1. Broker → gate: typed request {action, typed params, attestation token, witness assertions}.
 2. Gate, under one lock, fails closed in order: replay? attested? granted (signed default-deny rule whose constraints the params satisfy)? witnessed?
@@ -165,3 +184,75 @@ cannot choose its rule or path · H5 alarms are monotone · H6 the comparator ho
 every layer above it compromised · H7 the assumptions register is complete · H8 human
 override is slow and logged · H9 overhead within target · H10 permitted-channel leakage
 within budget. Falsification conditions and the phase plan: `docs/PROTOTYPING.md`.
+
+## 10. Appendices: the message formats
+
+### Appendix A: the controller's mailbox
+
+Every command is a signed request. Every response is a signed record. There are no writable registers. This is the security office's phone menu.
+
+| Command | Arguments | Returns | Who may call |
+| --- | --- | --- | --- |
+| `ATTEST` | nonce | Measurements, chip identity, model manifest digest, policy digest and epoch, permission-table digest, counters | Anyone |
+| `BEGIN_MODEL` | Publisher-signed manifest of tensor hashes | Fingerprint extended; the model digest | The loader, inside the enclave |
+| `END_MODEL` | Model digest | Counters finalized | The loader |
+| `CAP_REQUEST` | Enforcement point, peer identity, direction, byte budget, time-to-live | Permission, or a denial with reason | The driver via the GSP |
+| `ROSTER_JOIN` | Peer attestation report | Roster id; peer permission; link key material | The driver, at job start |
+| `EP_CONFIGURE` | Enforcement point, permission set | Acknowledgement | Controller firmware only, from policy |
+| `SIGN_OUTPUT` | Stream id, claimed prompt hash, nonce | Device-provenance record | The serving stack |
+| `POLICY_PROPOSE` | Policy image, version, expiry, signatures | Accepted if the threshold is met; the new epoch | Policy authority |
+| `HEARTBEAT` | Signed validity token | Timer reset | Policy authority |
+| `HALT` / `THROTTLE` | Signed command | Lines asserted | Policy authority |
+| `LOG_CHECKPOINT` | none | Signed Merkle root, size, head | Anyone |
+| `COUNTERS` | Model digest | Tokens, kernel-cycles, bytes in and out | Anyone |
+| `EXCEPTION_DRAIN` | none | Refused transactions since the last drain, for the log | Controller firmware |
+
+### Appendix B: the permission
+
+One row per permitted class of traffic at one enforcement point. The default table is empty except for what the policy and the roster add. It is the hall pass: who, which door, which direction, how much, until when.
+
+| Field | Meaning |
+| --- | --- |
+| `point` | Which checker: copy engine, peer mapping, link, RDMA filter, storage channel |
+| `peer` | Verified identity of the other end: a roster member, the host enclave, a storage manifest, a NIC flow |
+| `direction` | In, out, or both |
+| `budget` | Bytes permitted before the permission expires |
+| `expiry` | Time or job end |
+| `policy_epoch` | The policy under which this row was added |
+| `mac` | Controller-keyed integrity tag |
+
+A transaction that matches no row is refused at the checker, and the refusal is drained to the log with its source, destination and size.
+
+### Appendix C: the ticket and the reservation
+
+The ticket as [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py) mints it today, with the fields the review added marked. One seat, one show, torn at the door.
+
+| Field | Content |
+| --- | --- |
+| `ticket_id` | Random, single-use; burned durably at the endpoint |
+| `request_hash` | Hash of request id, fingerprint, action and fields |
+| `action`, `params_digest` | What may happen, and with exactly which fields |
+| `measurement` | The workload the permission was granted to |
+| `rule` | The rulebook entry that allowed it |
+| `policy_id` (added) | The policy epoch; the endpoint refuses any other |
+| `endpoint` (added, optional) | The endpoint registry the ticket is valid at |
+| `budget_key`, `reservation` (added) | The shared allowance and the reservation held against it; committed by the endpoint before it acts |
+| `issued_at`, `expires_at` | Lifetime; an unused reservation is released at expiry |
+| signature | The gate's key, derived from what booted |
+
+### Appendix D: the device-provenance record
+
+The courier's signature, field by field.
+
+| Field | Content | What it proves |
+| --- | --- | --- |
+| `chip_id`, `fw_measurement` | Fused identity; the hash chain from the root | Which device and firmware |
+| `model_digest` | From `BEGIN_MODEL` | Which model was loaded |
+| `policy_epoch` | The controller's active policy | Which rules were in force |
+| `roster_id` | The verified group that ran the job | Which peers were allowed |
+| `prompt_hash` | As supplied by the serving stack | The stack's claim about the input, authenticated, not verified |
+| `output_hash`, `token_count` | Running hash of the bytes that crossed the output path | These bytes left this device |
+| `nonce`, `time`, `counters` | Freshness and metering | When, and how much compute |
+| signature | Chip-bound key | The device signed all of the above |
+
+This record is what the provenance lane can anchor to and what the gate can require. It establishes device provenance. Workload provenance needs the verified runtime's own record alongside it. Execution integrity needs work that has not been done.

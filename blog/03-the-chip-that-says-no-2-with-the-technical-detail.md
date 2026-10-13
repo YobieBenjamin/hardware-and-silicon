@@ -1,6 +1,6 @@
 # The Chip That Says No
 
-By Yobie Benjamin · yobie AT ieee DOT org · linkedin.com/in/yobie · October 12, 2026 · Part 2 of 3: the same argument, with the technical detail
+By Yobie Benjamin · yobie AT ieee DOT org · linkedin.com/in/yobie · October 12, 2026 · Part 2 of 4: the same argument, with the technical detail
 
 > Same argument as Part 1, with the names, numbers and papers. This blog now veers into my fascination with the brain and biology. The point is simple. There is a way to make AI safe, and it is not AI guardrails running on AI. The guard that stops a bad action has to be a simple, physical thing that the AI cannot talk to, cannot edit, and cannot get around. A chip designer friend of mine went through my first draft and corrected it in seven places. I marked where his corrections land. Every paper, standard and product I lean on is linked where I use it, and listed again at the end.
 
@@ -154,7 +154,7 @@ What is left over, stated plainly: dangers outside the rulebook, harm done with 
 
 ## Where this goes next
 
-[Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) of this series is the design I am theorizing and proposing: where each layer of the stack goes in silicon, the theory each piece rests on, how the pieces talk to each other and to the model, how they sit against the GPU, the CPU, memory and storage, and the experiments that would prove or disprove each claim.
+[Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) and [Part 4](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) of this series are the design I am theorizing and proposing: where each layer of the stack goes in silicon, the theory each piece rests on, how the pieces talk to each other and to the model, how they sit against the GPU, the CPU, memory and storage, the chip that sits in the rack beside every GPU, and the experiments that would prove or disprove each claim. The chip itself is a separate project, [safety-governor](https://github.com/YobieBenjamin/safety-governor), with its own model, tests and RTL.
 
 I don't know if my design proposal is correct. I am a lone researcher with stacks of research papers and a sick penchant for trying to understand the complex, but heck, the reason I am writing is simple. We might be in an existential time, and someone has to think through this problem. If anyone wants to collaborate, please, please reach out. I am here: yobie AT ieee DOT org.
 
@@ -179,4 +179,4 @@ Every link below was checked on the day of posting.
 - [IEC 61508](https://webstore.iec.ch/en/publication/5515) and [IEC 61511](https://webstore.iec.ch/en/publication/5527), functional safety of safety instrumented systems.
 - D. Dalrymple et al., [*Towards Guaranteed Safe AI*](https://arxiv.org/abs/2405.06624) (2024). The safety specification, the world model and the verifier are separate, and reliable checking does not remove assumptions about the world.
 - NVIDIA, [OpenShell on GitHub](https://github.com/NVIDIA/OpenShell) and its [documentation](https://docs.nvidia.com/openshell/about/overview), and the [Open Agent Safety Platform announcement](https://nvidianews.nvidia.com/news/open-agent-safety-platform) (September 28, 2026). The sandbox and the out-of-band watchdog this design builds on.
-- My repository, [hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon): the reference stack, the attack catalogue, and [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) of this series.
+- My repository, [hardware-and-silicon](https://github.com/YobieBenjamin/hardware-and-silicon): the reference stack, the attack catalogue, and [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md), [Part 3](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/04-the-chip-that-says-no-3-the-silicon-design.md) and [Part 4](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) of this series; and [safety-governor](https://github.com/YobieBenjamin/safety-governor), the chip.

@@ -23,9 +23,10 @@ const FONT_BODY = "Georgia", FONT_HEAD = "Arial", FONT_CODE = "Consolas";
 const INK = "2C2C2A", QUIET = "5F5E5A", RULE = "C9C7BE", HEAD = "1F2A44", LINK = "185FA5";
 
 const POSTS = [
-  { src: "02-the-chip-that-says-no-1-plain-english.md", series: "The Chip That Says No · Part 1 of 3" },
-  { src: "03-the-chip-that-says-no-2-with-the-technical-detail.md", series: "The Chip That Says No · Part 2 of 3" },
-  { src: "04-the-chip-that-says-no-3-the-silicon-design.md", series: "The Chip That Says No · Part 3 of 3" },
+  { src: "02-the-chip-that-says-no-1-plain-english.md", series: "The Chip That Says No · Part 1 of 4" },
+  { src: "03-the-chip-that-says-no-2-with-the-technical-detail.md", series: "The Chip That Says No · Part 2 of 4" },
+  { src: "04-the-chip-that-says-no-3-the-silicon-design.md", series: "The Chip That Says No · Part 3 of 4" },
+  { src: "05-the-chip-that-says-no-4-the-governor-in-the-rack.md", series: "The Chip That Says No · Part 4 of 4" },
 ].map((p) => ({ ...p, out: p.src.replace(/\.md$/, ".docx") }));
 
 // ------------------------------------------------------------------ inline markdown

@@ -134,7 +134,10 @@ all succeed, so the gate is not passing by refusing everything.
 - **The Chip That Says No**, a three-part series:
   1. [Part 1, plain English](blog/02-the-chip-that-says-no-1-plain-english.md) — the drone and the school; why AI cannot police AI; the hot stove; the brain's three tricks; "can you undo it?"; STOP but never GO.
   2. [Part 2, with the technical detail](blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) — the final common path, reference monitors, the amygdala's low road, efference copy, the veto window, reversibility, monotone alarms, the formal claim.
-  3. [Part 3, the silicon design](blog/04-the-chip-that-says-no-3-the-silicon-design.md) — the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, where the bits live, the authorization protocol, the policy controller and its enforcement points, three kinds of provenance, the assumptions register, the experiment program.
+  3. [Part 3, the silicon design: the action side](blog/04-the-chip-that-says-no-3-the-silicon-design.md) — the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, what a chip can know, where the bits live, the authorization protocol, the gate, the endpoint comparator, the assumptions register.
+  4. [Part 4, the compute side and the governor in the rack](blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) — the root of trust, confidential compute, the controller and its enforcement points, three kinds of provenance, how the layers interact, one request end to end, the Safety Governor (one per NVIDIA GPU, added through the rack's boards), the experiment program, what none of this solves.
+
+The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor) — the design, a functional model of a rack of governed GPUs, the hypothesis suite H0 to H16, the RTL for the hard-core blocks, and the plan to put it on silicon.
 
 All in [`blog/`](blog/) as Markdown and Word, with figures (CC BY-NC 4.0, see License below).
 
