@@ -124,7 +124,7 @@ all succeed, so the gate is not passing by refusing everything.
 | `hardware_ref/oasp.py` | NVIDIA OASP | `SupervisorMiddleware` (gate on OpenShell's request path), `to_openshell_network_policy`, `SentryObserver`, `SentryActuator`, `to_ocsf` |
 | `hardware_ref/audit.py` | audit | signed hash chain, RFC 6962 Merkle root, checkpoints, inclusion and consistency proofs, offline verifier |
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
-| `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (66 attacks + 10 baselines) and the sweep runner / report writer |
+| `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (75 attacks + 12 baselines; `results/report.md` has the current count) and the sweep runner / report writer |
 | `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
 | `tests/` | — | 51 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path, the transactional contract (`test_transactional.py`) and the full sweep |
 

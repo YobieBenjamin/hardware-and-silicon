@@ -59,7 +59,7 @@ This is the lane that matters, and it is the one we built out first. The design 
 4. **Check the budget, hold for a human if required, then issue a ticket.** A one-time signed ticket, good for 60 seconds, bound to a hash of the exact action and its parameters. The endpoint that moves the money verifies the ticket itself. Change the amount after the ticket was issued and the hash breaks. Present it twice and the second is refused.
 5. **Write it down where nobody can erase it.** Every decision goes into a hash chain with a signature on every entry and periodic signed Merkle checkpoints, the Certificate Transparency construction. Edit, delete, reorder or truncate the log and the break is provable with a few dozen bytes.
 
-We attack all of it. The catalogue has 66 attacks and 10 legitimate baselines, every one named for the layer it hits:
+We attack all of it. The catalogue has 66 attacks and 10 legitimate baselines, every one named for the layer it hits (correction, 2026-10-21: the catalogue has since grown to 75 attacks and 12 baselines with parts 3 and 4 of the series; `results/report.md` in the repository carries the current count, and the figures below are the ones at publication):
 
 | Layer | Attacks | What they try |
 |---|---|---|
