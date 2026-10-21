@@ -3,7 +3,7 @@
 ## One command
 
 ```bash
-./run.sh          # venv → install → pytest (51 tests) → sweep (75 attacks + 12 baselines) → results/report.md
+./run.sh          # venv → install → pytest (56 tests) → sweep (75 attacks + 12 baselines) → results/report.md
 ./run.sh demo     # the same, then `hwctl demo`
 ./reproduce.sh    # run.sh, then git diff of results/ against the committed report
 ```

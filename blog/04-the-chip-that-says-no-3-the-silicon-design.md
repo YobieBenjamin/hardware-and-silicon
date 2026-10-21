@@ -222,7 +222,7 @@ Every link below was checked on the day of posting. The ones behind a publisher'
 
 ```
 git clone https://github.com/YobieBenjamin/hardware-and-silicon
-cd hardware-and-silicon && ./run.sh    # 51 tests, 75 attacks, 12 baselines, under a minute
+cd hardware-and-silicon && ./run.sh    # 56 tests, 75 attacks, 12 baselines, under a minute
 ```
 
 If anyone wants to collaborate on any phase of this, I am here: yobie AT ieee DOT org.

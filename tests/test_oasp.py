@@ -99,3 +99,86 @@ def test_high_authority_rules_can_demand_both_witnesses():
     assert node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", large)).reasons == ["observer.missing"]
     node.supervisor.add_witness(lambda rh, action, params: node.observer.assess(rh, action, params))
     assert node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", large)).status == 202
+
+
+# -- OpenShell's shipped middleware contract (allow or deny, one reason code, no hold) --------------
+
+
+def test_openshell_reason_codes_follow_the_grammar():
+    from hardware_ref.oasp import OPENSHELL_REASON_RE, openshell_reason_code
+
+    for ours in ["sandbox.quarantined", "attestation.missing", "attestation.expired", "observer.missing", "observer.risk_above_threshold",
+                 "provenance.status_tampered", "human.approval_required", "policy.no_rule", "budget.exceeded", "Ticket-Replay", "9lives", ""]:
+        assert OPENSHELL_REASON_RE.match(openshell_reason_code(ours)), ours
+    assert openshell_reason_code("attestation.missing") == "attestation_missing"
+    assert len(openshell_reason_code("x" * 200)) == 64
+
+
+def test_openshell_sees_only_the_code_never_our_text():
+    from hardware_ref.oasp import to_openshell
+
+    node = build_oasp_node()
+    node.supervisor.refresh_token("sandbox-a", None)  # host never attested
+    d = node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY))
+    r = to_openshell(d)
+    assert not r.allow and r.reason_code == "attestation_missing" and r.header_changes == []
+    err = r.sandbox_error()
+    assert set(err) == {"error", "detail", "policy", "middleware", "reason_code"} and err["error"] == "middleware_denied"
+    assert all(v != "attestation.missing" for v in err.values())  # the dotted form, like any free text of ours, never reaches the sandbox
+
+
+def test_openshell_allow_carries_the_ticket_as_a_header_change():
+    from hardware_ref.oasp import to_openshell
+
+    node = build_oasp_node()
+    d = node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY))
+    r = to_openshell(d)
+    assert r.allow and r.reason_code is None
+    assert [c["name"] for c in r.header_changes] == ["X-Action-Ticket"] and r.header_changes[0]["write"] == "overwrite"
+    assert node.endpoints.execute(ticket_from_header(r.header_changes[0]["value"]), "payments.transfer", PAY)["status"] == "simulated"
+
+
+def test_hold_is_a_denial_on_openshell_and_the_approved_retry_gets_the_ticket_once():
+    from hardware_ref.gate import make_approval
+    from hardware_ref.oasp import HOLD_PENDING, to_openshell
+
+    node = build_oasp_node()
+    big = {**PAY, "amount": 20000}
+    req = OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", big)
+    first = node.supervisor.handle(req)
+    assert to_openshell(first).reason_code == HOLD_PENDING and to_openshell(first).sandbox_error()["reason_code"] == HOLD_PENDING
+    hold_id = first.gate.hold_id
+    # asking again while held does not open a second hold
+    again = node.supervisor.handle(req)
+    assert to_openshell(again).reason_code == HOLD_PENDING and again.headers["X-Hold-Id"] == hold_id and len(node.gate.state.holds) == 1
+    # another sandbox on the same attested host sending the same request is held separately, never handed this sandbox's outcome
+    node.supervisor.bind_sandbox("sandbox-b", node.measurement, node.supervisor._sandboxes["sandbox-a"]["token"])
+    other = node.supervisor.handle(OutboundRequest("sandbox-b", "POST", API_HOST, "/payments/transfer", big))
+    assert to_openshell(other).reason_code == HOLD_PENDING and other.gate.hold_id != hold_id
+    # the approval arrives out of band, through the middleware, which parks the ticket for sandbox-a's retry
+    approval = make_approval(node.approver_key, "ops-lead", hold_id, first.gate.request_hash, node.clock.now())
+    assert node.supervisor.approve(approval).allowed
+    retry_b = node.supervisor.handle(OutboundRequest("sandbox-b", "POST", API_HOST, "/payments/transfer", big))
+    assert to_openshell(retry_b).reason_code == HOLD_PENDING  # sandbox-b is still waiting on its own hold
+    retry = node.supervisor.handle(req)
+    r = to_openshell(retry)
+    assert r.allow and [c["name"] for c in r.header_changes] == ["X-Action-Ticket"]
+    ticket = ticket_from_header(r.header_changes[0]["value"])
+    assert node.endpoints.execute(ticket, "payments.transfer", big)["status"] == "simulated"
+    # the parked ticket is consumed: a third try is a fresh hold, not a replay
+    third = node.supervisor.handle(req)
+    assert to_openshell(third).reason_code == HOLD_PENDING and third.gate.hold_id not in (None, hold_id)
+    events = [e["record"]["event"] for e in node.gate.audit.entries]
+    assert "supervisor.retry_after_approval" in events
+
+
+def test_openshell_quarantine_code_and_findings_count_only():
+    from hardware_ref.oasp import to_openshell
+
+    node = build_oasp_node()
+    node.supervisor.telemetry = lambda req: {"drift_score": 0.95, "identity_verified": True}
+    d = node.supervisor.handle(OutboundRequest("sandbox-a", "POST", API_HOST, "/payments/transfer", PAY))
+    r = to_openshell(d)
+    assert not r.allow and r.findings == len(d.reasons) >= 1 and r.metadata["quarantined"] is True
+    d2 = node.supervisor.handle(OutboundRequest("sandbox-a", "GET", "docs.example.org", "/", {}))
+    assert to_openshell(d2).reason_code == "sandbox_quarantined"

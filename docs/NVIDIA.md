@@ -83,8 +83,8 @@ Both are **not** mandatory everywhere, deliberately:
   still being built.
 - Two witness calls per consequential action is a latency and availability
   cost that most actions do not justify.
-- NVIDIA's fourth principle — authority should scale with the visibility of the
-  agent's reasoning — argues for scaling *witnesses* with authority too. So the
+- NVIDIA's fourth principle, that authority should scale with the visibility of the
+  agent's reasoning, argues for scaling *witnesses* with authority too. So the
   recommended shape is `high_authority_observer=["sentry", "obs-main"]`: the
   `human`-mode rules (the highest-authority actions, the ones that already wait
   for a signed approval) demand both witnesses; everything else runs on Sentry
@@ -116,6 +116,37 @@ supervisor: it lets the *endpoint* verify that the supervisor saw the request
 and the gate admitted it, which closes the case where an agent reaches a
 consequential service through some path the sandbox policy did not foresee
 (`NV.unrouted_passthrough_no_ticket` in the catalogue).
+
+## OpenShell's shipped middleware contract, and what the model changed to meet it
+
+The middleware above was written from the launch posts. On 21 October 2026 the
+OpenShell repository's own documentation (`docs/extensibility/supervisor-middleware/`,
+main at `837fdfd`) was read against it. The contract, in the terms the
+documentation uses:
+
+| OpenShell says | What it means for the governor |
+|---|---|
+| A middleware is a **gRPC service** registered in gateway TOML (`[[openshell.supervisor.middleware]]`: `name`, `grpc_endpoint`, `tls_ca_cert_path`, `max_payload_bytes` up to 4 MiB, `timeout` from 10 ms to 30 s, default 500 ms) and attached to destination hosts in **sandbox policy** by setting `middleware` to that name | The gate is registered once and attached only to the hosts that are consequential actions; everything else never reaches it, which is step 2 of the decision order below |
+| It runs **after network policy allows** a request and **before provider credentials are injected**; it never sees the credentials | The form the gate judges is the request OpenShell already allowed by host; the gate adds the *action* judgment, and the ticket, without touching secrets |
+| Operations: `HTTP_REQUEST` (`EvaluateHttpRequest`, phase `PRE_CREDENTIALS`), `HTTP_RESPONSE` (`HttpResponsePreReturn.Evaluate`, `PRE_RETURN`), `WEBSOCKET_MESSAGE` (`EvaluateWebSocketSession`); a service declares its bindings in a `Describe` manifest and validates its config in `ValidateConfig` | The governor binds `HTTP_REQUEST`; response inspection is not its job (a blocked response does not undo the request, as the documentation itself notes) |
+| The answer is **allow** (optionally replacing the body or adding, changing or removing headers, applied as a unit) or **deny** with one optional **reason code** | ALLOW → allow with `X-Action-Ticket` as a header change; DENY → deny with the code |
+| The reason code is **1 to 64 bytes, a lowercase ASCII letter first, then lowercase letters, digits and underscores**; an invalid code is treated as a middleware failure | Our dotted codes (`attestation.missing`) do not fit; `openshell_reason_code` maps them (`attestation_missing`) and a test holds every code we emit to the grammar |
+| **There is no hold answer.** The sandbox receives a fixed structured error on a denial (`error: middleware_denied`, the policy and middleware names, `reason_code`); OpenShell **never forwards free-form text** from the service, logs only the **count** of findings, and does not log metadata | A human hold becomes a denial with `hold_pending`. The approval arrives out of band; `SupervisorMiddleware.approve` parks the ticket, and the same sandbox's retry of the same request (same measurement, action and parameters) is answered with it, once. A second sandbox sending the same request gets its own hold. Asking again while held does not open a second hold |
+| If the service **fails or is unreachable, OpenShell blocks the affected traffic by default** | Fail closed is OpenShell's behaviour, not something the governor has to supply; a governor that is down means no consequential action, which is the right failure |
+| OpenShell removes credential, routing, framing and hop-by-hop headers before the call; header values may not contain control characters or credential placeholders | The ticket header is plain canonical JSON; nothing in it trips those rules |
+
+`to_openshell(decision)` is the adapter (`oasp.py`), `OpenShellResult.sandbox_error()`
+is what the agent actually sees, and `tests/test_oasp.py` holds five tests for the
+contract: grammar of every code, nothing but the code reaching the sandbox, the
+ticket as a header change, hold as denial with a once-only approved retry, and the
+quarantine code. The decision has to arrive inside the configured timeout; the
+model's gate answers in well under a millisecond, and a human hold never waits
+inside the call, which is why it is a denial and a retry rather than a pause.
+
+Two things the documentation states that the governor relies on and cannot
+test from here: the gateway authenticates the service with a token whose
+audience is `urn:openshell:extension:middleware:<name>`, and policy changes
+that add risky access wait for human review (the prover). Both are OpenShell's.
 
 ## What the harness shows on this path
 
@@ -150,9 +181,9 @@ OpenShell document; `hwctl ocsf` writes the OCSF-shaped events.
 
 | Principle | OpenShell / Sentry | This repo | `safety` repo | `Watermark` repo |
 |---|---|---|---|---|
-| Verifiable policy | prover over the policy model | governance signature over the policy; grants bound to attested measurement | — | — |
+| Verifiable policy | prover over the policy model | governance signature over the policy; grants bound to attested measurement | none | none |
 | Out-of-band enforcement | supervisor outside the process; Sentry outside the host | gate as middleware; tickets verified at the endpoint; silicon roadmap | observers outside the model | registry outside the model |
-| Path to the model is the control point | BlueField-4 on the only path | attestation of what is on that path; quarantine on gate decisions | observers that warn before the next action | — |
+| Path to the model is the control point | BlueField-4 on the only path | attestation of what is on that path; quarantine on gate decisions | observers that warn before the next action | none |
 | Authority scales with visibility of reasoning | open models expose reasoning and activations | human holds for the highest-authority actions | signals computed from the visible reasoning | provenance of what was emitted |
 | Shared responsibility | labs, enterprises, hardware providers each own a layer | the hardware lane, kept separate | the observer lane | the provenance lane |
 
@@ -160,7 +191,7 @@ OpenShell document; `hwctl ocsf` writes the OCSF-shaped events.
 
 NVIDIA's placement is placement A in `docs/SILICON.md`: the DPU on the path
 to the model. That makes BlueField-4 and DOCA the concrete target for the
-Layer 4 block — a DOCA application beside Sentry that holds the capability
+Layer 4 block, a DOCA application beside Sentry that holds the capability
 table, verifies tokens and witness assertions at line speed, mints and checks
 tickets, and keeps the audit head in a register the host cannot reach. The
 theoretical silicon design (phase 3) stays placement-agnostic in its message
@@ -171,7 +202,7 @@ put the chokepoint.
 
 - NVIDIA Technical Blog, *NVIDIA Open Agent Safety Platform: A Reference for Continuous In-Silicon Agent Monitoring* (28 Sep 2026)
 - NVIDIA Technical Blog, *Add Runtime Controls to AI Agents with NVIDIA OpenShell* (28 Sep 2026)
-- NVIDIA OpenShell documentation and repository (0.1.0)
+- NVIDIA OpenShell documentation and repository (0.1.0); the supervisor middleware contract re-read from the repository's `docs/extensibility/supervisor-middleware/` (`index.mdx`, `configure.mdx`, `operations.mdx`) at main `837fdfd`, 21 October 2026
 
 Details of OpenShell's policy format follow the 0.1.0 documentation at the
 time of writing; the translation in `oasp.py` is the one place to update if

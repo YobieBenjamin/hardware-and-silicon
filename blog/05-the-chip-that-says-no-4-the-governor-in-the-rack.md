@@ -332,7 +332,7 @@ This repository:
 
 ```
 git clone https://github.com/YobieBenjamin/hardware-and-silicon
-cd hardware-and-silicon && ./run.sh    # the contract: 51 tests, 75 attacks, 12 baselines, under a minute
+cd hardware-and-silicon && ./run.sh    # the contract: 56 tests, 75 attacks, 12 baselines, under a minute
 
 git clone https://github.com/YobieBenjamin/safety-governor
 cd safety-governor && ./run.sh          # the governor: 119 tests, 15 RTL simulations, the Verilog, the matrix, under a minute

@@ -9,7 +9,7 @@ agent activity, and can quarantine an agent in milliseconds.
 
 This module is the seam between that platform and the control plane in this
 repo. It does not re-implement sandboxing, network policy or credential
-binding — OpenShell owns those. It adds the four things the hardware lane
+binding: OpenShell owns those. It adds the four things the hardware lane
 exists for, at the points the platform leaves open:
 
 * **Supervisor middleware** (``SupervisorMiddleware``). OpenShell lets
@@ -18,8 +18,8 @@ exists for, at the points the platform leaves open:
   request to a consequential action, consults the Layer 4 gate (policy,
   witnesses, budget, human hold) and attaches the resulting one-time ticket.
   A request the supervisor never saw has no ticket, so the endpoint refuses it
-  — the ticket turns "no path except the supervisor" into something the far
-  end can verify.
+  (the ticket turns "no path except the supervisor" into something the far
+  end can verify).
 * **Policy translation** (``to_openshell_network_policy``). The governance-
   signed gate policy is the single source of truth; the OpenShell
   ``network_policies`` document (YAML → OPA/Rego, checked by the OpenShell
@@ -41,6 +41,7 @@ silicon phase (``docs/SILICON.md``) has a DOCA-side target to hit.
 from __future__ import annotations
 
 import collections
+import re
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -147,8 +148,8 @@ class SentryObserver:
 
     Sentry sits on BlueField-4, out of the agent's reach, and correlates agent
     interactions, policy decisions and tool/data access. We do not model how it
-    scores drift; we model the only thing the gate needs — a signed verdict
-    about *this request* from a key the gate anchors — so the gate's reaction
+    scores drift; we model the only thing the gate needs, a signed verdict
+    about *this request* from a key the gate anchors, so the gate's reaction
     to Sentry's output is testable.
     """
 
@@ -254,7 +255,7 @@ class SupervisorMiddleware:
 
     1. quarantined sandbox → 403 ``sandbox.quarantined`` (nothing else is evaluated);
     2. no route → the request is not a consequential action; pass through to
-       OpenShell's own network policy (``allowed=True`` with no ticket — the
+       OpenShell's own network policy (``allowed=True`` with no ticket; the
        endpoint side will refuse anything consequential that lacks one);
     3. no attestation token bound to this sandbox's host → 403 ``attestation.missing``;
     4. build the gate request (token, Sentry verdict, any provenance assertion),
@@ -276,6 +277,12 @@ class SupervisorMiddleware:
         self.provenance: Callable[[OutboundRequest], dict | None] = lambda req: None
         self.witnesses: list[Callable[[str, str, dict], dict]] = []  # extra Layer 3 producers (the safety repo's observer)
         self._seq = 0
+        # OpenShell's middleware answer is allow or deny; there is no hold. A human hold is therefore a
+        # denial (``hold_pending``) and the approval parks the ticket here for the same sandbox's retry
+        # of the same request. Keyed by (sandbox, measurement, action, params), consumed once.
+        self._pending: dict[tuple[str, str], str] = {}  # (sandbox, core digest) → hold id
+        self._parked: dict[tuple[str, str], dict] = {}  # (sandbox, core digest) → ticket
+        self._hold_owner: dict[str, tuple[str, str]] = {}  # hold id → (sandbox, core digest)
 
     # -- configuration -----------------------------------------------------------------
 
@@ -299,6 +306,23 @@ class SupervisorMiddleware:
         """
         self.witnesses.append(producer)
 
+    def approve(self, approval: dict) -> GateResult:
+        """Release a hold through the middleware. The ticket is parked for the held sandbox's retry.
+
+        On OpenShell the sandbox saw ``hold_pending`` and cannot be handed a ticket
+        later: the only way back is to send the same request again. The approval
+        arrives out of band (an operator console), the gate issues the ticket, and
+        the middleware keeps it for exactly one retry by the same sandbox of a
+        request with the same measurement, action and parameters.
+        """
+        res = self.gate.approve(approval)
+        hold_id = (approval.get("payload") or {}).get("hold_id", "") if isinstance(approval, dict) else ""
+        owner = self._hold_owner.pop(hold_id, None)
+        if res.decision is Decision.ALLOW and owner is not None and res.ticket is not None:
+            self._parked[owner] = res.ticket
+            self._pending.pop(owner, None)
+        return res
+
     def _route(self, req: OutboundRequest) -> Route | None:
         for r in self.routes:
             if r.method == req.method and r.host == req.host and _path_match(r.path, req.path):
@@ -321,6 +345,14 @@ class SupervisorMiddleware:
             return MiddlewareDecision(False, 403, ["attestation.missing"], action=route.action)
 
         params = route.params(req.body)
+        core_key = (req.sandbox_id, digest({"m": binding["measurement"], "a": route.action, "p": params}))
+        parked = self._parked.pop(core_key, None)
+        if parked is not None:  # the retry after an approved hold: the ticket already exists, nothing is re-decided
+            self.gate.audit.append({"event": "supervisor.retry_after_approval", "sandbox": req.sandbox_id, "action": route.action, "ticket_id": parked.get("payload", {}).get("ticket_id")})
+            return MiddlewareDecision(True, 200, [], headers={"X-Action-Ticket": _ticket_header(parked)}, gate=GateResult(Decision.ALLOW, [], parked.get("payload", {}).get("request_hash", ""), ticket=parked), action=route.action)
+        pending = self._pending.get(core_key)
+        if pending is not None and pending in self.gate.state.holds:  # still held: say so again, do not open a second hold
+            return MiddlewareDecision(False, 202, ["human.approval_required"], headers={"X-Hold-Id": pending}, action=route.action)
         self._seq += 1  # every request the supervisor sees gets its own id; the gate's replay check keys on it
         gate_req = {
             "request_id": req.request_id or digest({"s": req.sandbox_id, "n": self._seq, "m": req.method, "h": req.host, "p": req.path})[:32],
@@ -344,6 +376,9 @@ class SupervisorMiddleware:
         if res.decision is Decision.ALLOW:
             return MiddlewareDecision(True, 200, [], headers={"X-Action-Ticket": _ticket_header(res.ticket)}, gate=res, action=route.action)
         if res.decision is Decision.HOLD:
+            if res.hold_id:
+                self._pending[core_key] = res.hold_id
+                self._hold_owner[res.hold_id] = core_key
             return MiddlewareDecision(False, 202, res.reasons, headers={"X-Hold-Id": res.hold_id or ""}, gate=res, action=route.action)
 
         quarantined = self._after_denial(req.sandbox_id, res, telemetry)
@@ -375,6 +410,63 @@ def _path_match(pattern: str, path: str) -> bool:
     if pattern.endswith("/**"):
         return path.startswith(pattern[:-3])
     return pattern == path
+
+
+# ---------------------------------------------------------------------------------------
+# OpenShell's shipped middleware contract (NVIDIA/OpenShell docs/extensibility/supervisor-middleware,
+# main at 837fdfd, 2026-10-21). A middleware service answers ``EvaluateHttpRequest`` with allow
+# (optionally changing headers or the body) or deny with one reason code. The code is 1 to 64 bytes,
+# a lowercase ASCII letter first, then lowercase letters, digits and underscores. OpenShell forwards
+# the code to the sandbox inside a fixed ``middleware_denied`` error and to its logs; it never
+# forwards free text, logs only the *count* of findings, and does not log metadata. There is no hold
+# answer, and an unreachable or failing middleware blocks the traffic (fail closed) by default.
+# ---------------------------------------------------------------------------------------
+
+OPENSHELL_REASON_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+HOLD_PENDING = "hold_pending"
+
+
+def openshell_reason_code(reason: str) -> str:
+    """Our dotted reason code in OpenShell's grammar: ``attestation.missing`` → ``attestation_missing``."""
+    code = re.sub(r"[^a-z0-9_]+", "_", reason.lower()).strip("_")
+    if not code or not code[0].isalpha():
+        code = "gate_" + code
+    return code[:64].rstrip("_")
+
+
+@dataclass
+class OpenShellResult:
+    """The answer OpenShell's supervisor receives, and the only things it will pass on."""
+
+    allow: bool
+    reason_code: str | None = None  # forwarded to the sandbox and the logs
+    header_changes: list[dict] = field(default_factory=list)  # [{"name", "value", "write": "overwrite"}]
+    findings: int = 0  # OpenShell logs the number, not the text
+    metadata: dict = field(default_factory=dict)  # diagnostic only: not logged, not forwarded
+
+    def sandbox_error(self, policy: str = "api-policy", middleware: str = "safety-governor") -> dict | None:
+        """What the sandboxed agent actually sees on a denial (OpenShell's fixed shape; nothing of ours but the code)."""
+        if self.allow:
+            return None
+        return {"error": "middleware_denied", "detail": "Request rejected by configured middleware", "policy": policy, "middleware": middleware, "reason_code": self.reason_code}
+
+
+def to_openshell(decision: MiddlewareDecision) -> OpenShellResult:
+    """Map the model's decision onto the shipped contract.
+
+    ALLOW → allow, with the ticket as a header change. HOLD (our 202) → deny with
+    ``hold_pending``: OpenShell has no third answer, so the agent is told to come
+    back, and ``SupervisorMiddleware.approve`` parks the ticket for that retry.
+    DENY → deny with the first reason code in OpenShell's grammar; the full list
+    rides in metadata, which OpenShell neither logs nor forwards.
+    """
+    if decision.allowed:
+        changes = [{"name": k, "value": v, "write": "overwrite"} for k, v in decision.headers.items()]
+        return OpenShellResult(True, None, changes, 0, {"action": decision.action})
+    if decision.status == 202:
+        return OpenShellResult(False, HOLD_PENDING, [], len(decision.reasons), {"reasons": list(decision.reasons), "hold_id": decision.headers.get("X-Hold-Id")})
+    first = decision.reasons[0] if decision.reasons else "denied"
+    return OpenShellResult(False, openshell_reason_code(first), [], len(decision.reasons), {"reasons": list(decision.reasons), "quarantined": decision.quarantined})
 
 
 def _ticket_header(ticket: dict | None) -> str:
@@ -415,7 +507,7 @@ def to_ocsf(entry: dict, *, product: str = "hardware_ref") -> dict:
     The field names follow the OCSF base event (``category_uid``, ``class_uid``,
     ``activity_id``, ``severity_id``, ``status_id``, ``time``, ``metadata``) so an
     OpenShell OCSF pipeline can take the records; it is a shape, not a validated
-    schema instance — validation against the official schema is a to-do. The
+    schema instance; validation against the official schema is a to-do. The
     chain hash and signature travel in ``unmapped`` so tamper evidence survives
     the export.
     """

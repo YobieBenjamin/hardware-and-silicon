@@ -66,7 +66,7 @@ See [`docs/NVIDIA.md`](docs/NVIDIA.md).
 
 ```bash
 git clone https://github.com/YobieBenjamin/hardware-and-silicon && cd hardware-and-silicon
-./run.sh          # venv, install, 51 tests, 75-attack sweep → results/report.md  (under a minute)
+./run.sh          # venv, install, 56 tests, 75-attack sweep → results/report.md  (under a minute)
 ./run.sh demo     # the above, then a narrated end-to-end flow, including the NVIDIA OASP path
 ```
 
@@ -126,7 +126,7 @@ all succeed, so the gate is not passing by refusing everything.
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
 | `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (75 attacks + 12 baselines; `results/report.md` has the current count) and the sweep runner / report writer |
 | `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
-| `tests/` | — | 51 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path, the transactional contract (`test_transactional.py`) and the full sweep |
+| `tests/` | none | 56 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path, the transactional contract (`test_transactional.py`) and the full sweep |
 
 ## Blog
 

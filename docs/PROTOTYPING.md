@@ -23,7 +23,7 @@ committed ticket.
 | host compromise cannot bypass endpoint authorization | `EP.no_ticket`, `TX.risk_label_ignored`, `TX.epoch_forged`, `L5.policy_forged`, `L4.weights_exfiltration` |
 | restart, power loss, policy change, partition preserve behaviour | `TX.ticket_replay_after_restart`, `TX.request_replay_after_restart`, `TX.ticket_after_policy_change`, `TX.commit_unreachable` |
 
-Current numbers: 51 tests, 75 attacks blocked, 12 baselines allowed (`results/report.md`).
+Current numbers: 56 tests, 75 attacks blocked, 12 baselines allowed (`results/report.md`).
 
 **What it cannot prove.** Tamper-resistance, hardware coverage, reset behaviour, timing,
 isolation, physical failure. The silicon root is Python; the lock is a Python lock; the
