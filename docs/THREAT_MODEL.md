@@ -21,20 +21,20 @@ The adversary is assumed to know the design fully. Secrecy is in keys only.
 
 ## Attack surface by layer, and what holds
 
-### Layer 0 — silicon root
+### Layer 0: silicon root
 
 | Attack | Defense | Catalogue entry |
 |---|---|---|
 | Patch the runtime | measurement changes → not in reference allowlist | `L0.firmware_tamper` |
 | Patch the runtime and *report* golden registers | DICE: alias key derived from the real measurement; ROM-issued cert names it; verifier recomputes R0 from the certified digest | `L0.lying_firmware` |
 | Boot an old, vulnerable runtime | fused SVN refuses it before it runs | `L0.rollback_fused` |
-| Same, on a chip without fuses | verifier: `svn.below_minimum` and `firmware.unknown` — two independent checks | `L0.rollback_unfused` |
+| Same, on a chip without fuses | verifier: `svn.below_minimum` and `firmware.unknown`, two independent checks | `L0.rollback_unfused` |
 | Clone / counterfeit chip | device certificate does not chain to a known vendor CA | `L0.cloned_device` |
 | Keep using a unit known to be compromised | governance-signed revocation list | `L0.revoked_device` |
 | Replay a good quote | nonce is verifier-issued, single-use, time-limited | `L0.nonce_replay`, `nonce_expired`, `nonce_foreign` |
 | Pair a clean TEE with a different GPU | GPU evidence digest bound inside the TEE quote | `L0.gpu_swap` |
 
-### Layer 5 — governance
+### Layer 5: governance
 
 | Attack | Defense | Entry |
 |---|---|---|
@@ -42,7 +42,7 @@ The adversary is assumed to know the design fully. Secrecy is in keys only.
 | Publish a policy that grants `shell.exec` | same; a bad load leaves the previous policy in force | `L5.policy_forged` |
 | Governance itself ships `default: allow` | refused by schema validation at load | `L5.policy_default_allow` |
 
-### Layer 4 — control plane
+### Layer 4: control plane
 
 | Attack | Defense | Entry |
 |---|---|---|
@@ -58,7 +58,7 @@ The adversary is assumed to know the design fully. Secrecy is in keys only.
 | Attack | Defense | Entry |
 |---|---|---|
 | Omit the observer; forge its key; reuse a stale verdict; attach a verdict about a different request | required by rule; key anchor; freshness window; subject == request hash | `L3.observer_*` |
-| Genuine high-risk verdict | denies — this is the lane doing its job | `L3.observer_high_risk` |
+| Genuine high-risk verdict | denies; this is the lane doing its job | `L3.observer_high_risk` |
 | Send content the registry calls tampered; attach an `exact` verdict for other content; forge the registry key | status must be `exact`; digest must match this content; key anchor | `L2.provenance_*` |
 
 ### Endpoints
@@ -105,7 +105,7 @@ Stated so nobody mistakes the sweep for a security proof.
 - **A compromised gate host.** The gate's own key signs tickets and the audit
   trail. In software the gate is a process the operator runs; in silicon it is a
   block the operator cannot patch. Until then, the gate must run inside its own
-  attested TEE — which this same stack can attest.
+  attested TEE, which this same stack can attest.
 - **Semantic errors in policy.** The gate enforces the rules it is given. A rule
   that grants too much is a governance failure the gate will faithfully execute.
 - **Wrong observer verdicts.** A low-risk verdict for a harmful action is a
@@ -121,4 +121,4 @@ Stated so nobody mistakes the sweep for a security proof.
 - **Sentry's own judgement.** The drift score and identity verdict come from
   NVIDIA's watchdog; this repo models how the gate reacts to them, not whether
   they are right. A wrong low score is a Sentry failure the gate cannot see
-  past — the same limit as any Layer 3 observer.
+  past, the same limit as any Layer 3 observer.

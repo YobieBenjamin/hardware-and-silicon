@@ -1,4 +1,4 @@
-# The chip design — specification
+# The chip design: specification
 
 The narrative version is [`blog/04`](../blog/04-the-chip-that-says-no-3-the-silicon-design.md) (the action side) and
 [`blog/05`](../blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) (the compute side and the governor in the rack).
@@ -7,7 +7,7 @@ governor per NVIDIA GPU, added through the rack's boards, with its own functiona
 RTL and silicon plan. Placements A, B, C and E below map onto that project's tiers (rack, board-only, integrated).
 This file is the design stated as a specification: the contract, the boundary, the
 blocks, the protocol, the assumptions and the claims, in the order an implementer needs
-them. It supersedes the sketch in `docs/SILICON.md` §3–5 where the two differ; the
+them. It supersedes the sketch in `docs/SILICON.md` §3 to §5 where the two differ; the
 module-to-block map in `docs/SILICON.md` §1 still applies. Revised after the October 2026
 review (`docs/REVIEW-2026-10.md`).
 
@@ -95,7 +95,7 @@ data path. Dedicated checkers at each boundary crossing enforce the capabilities
 | PCIe to host, NIC, storage | PCIe port (TEE-I/O, IDE) | link keys issued at attestation; ACS against unexpected P2P |
 | RDMA across nodes | NIC/DPU filter tables | set only by the controller's signed commands (placement A) |
 | GPUDirect Storage | storage channel descriptor path | capability naming the manifest it may deliver |
-| display, debug, JTAG, any path without a checker | — | disabled by policy; never assumed safe |
+| display, debug, JTAG, any path without a checker | none | disabled by policy; never assumed safe |
 | host memory outside the enclave | CPU TEE | not a valid destination |
 
 Controller blocks: mailbox (only input; signed requests), capability table, peer roster,

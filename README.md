@@ -1,4 +1,4 @@
-# hardware-and-silicon — the control-plane lane of a layered AI-safety architecture, and the silicon under it
+# hardware-and-silicon: the control-plane lane of a layered AI-safety architecture, and the silicon under it
 
 A one-command, self-validating reference implementation of the layers that have
 to live *below* the model, because anything above it can be stripped out:
@@ -6,7 +6,7 @@ to live *below* the model, because anything above it can be stripped out:
 1. a **silicon root of trust** (Layer 0): fused device secret, anti-rollback
    counter, extend-only measurement registers, DICE key derivation (the key that
    signs a quote is derived from the measurement of the code that booted), and
-   a quote engine — one instance for the CPU TEE, one for the accelerator, bound
+   a quote engine: one instance for the CPU TEE, one for the accelerator, bound
    together the way an NVIDIA confidential-computing node binds its GPU to the
    TEE;
 2. an **attestation verifier** (RFC 9334 roles): challenge nonce, vendor
@@ -16,13 +16,13 @@ to live *below* the model, because anything above it can be stripped out:
    workload and every consequential action endpoint (payments, mail, shell,
    HTTP, weight export), with parameter constraints, rate limits, human holds,
    and one-time **action tickets** so an endpoint executes nothing the gate did
-   not admit — and, since the October 2026 design review, **transactional**:
+   not admit, and, since the October 2026 design review, **transactional**:
    shared budgets are reserved at allow and committed at the endpoint before it
    acts, replay state survives restart, and tickets are bound to a policy epoch
    (`ledger.py`, `docs/REVIEW-2026-10.md`);
 4. **lane interfaces**: the gate consumes signed *observer assertions* from the
    Layer 3 early-warning lane (the `safety` repo) and signed *provenance
-   assertions* from the Layer 2 lane (the `Watermark` repo) — and does not
+   assertions* from the Layer 2 lane (the `Watermark` repo), and does not
    compute either itself;
 5. a **signed, hash-chained, Merkle-checkpointed audit trail** (RFC 6962 proofs:
    inclusion and consistency) that records every decision;
@@ -72,7 +72,7 @@ git clone https://github.com/YobieBenjamin/hardware-and-silicon && cd hardware-a
 
 Needs Python 3.11+ (the newest `python3.x` on `PATH` is picked automatically) and
 PyPI on first run. One dependency (`cryptography`). No GPU, no keys to provision,
-no network calls at runtime — every key is generated inside the simulated node.
+no network calls at runtime; every key is generated inside the simulated node.
 
 Individual commands once the venv exists:
 
@@ -88,7 +88,7 @@ hwctl layers                    # the layer model and which repo owns what
 ## What the sweep shows
 
 Full table: [`results/report.md`](results/report.md). Every attack is blocked for
-the *right* reason — the report shows the reason code, not just a pass mark — and
+the *right* reason (the report shows the reason code, not just a pass mark) and
 every legitimate baseline goes through.
 
 | Layer | Attacks | Examples of what is caught, and how |
@@ -125,19 +125,19 @@ all succeed, so the gate is not passing by refusing everything.
 | `hardware_ref/audit.py` | audit | signed hash chain, RFC 6962 Merkle root, checkpoints, inclusion and consistency proofs, offline verifier |
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
 | `hardware_ref/attacks.py`, `harness.py` | harness | the catalogue (75 attacks + 12 baselines; `results/report.md` has the current count) and the sweep runner / report writer |
-| `hardware_ref/cli.py` | — | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
+| `hardware_ref/cli.py` | none | `hwctl demo · sweep · verify-audit · openshell-policy · ocsf · layers` |
 | `tests/` | none | 56 unit and integration tests, including a brute-force check of the Merkle proofs, the OASP path, the transactional contract (`test_transactional.py`) and the full sweep |
 
 ## Blog
 
-- [A Multi-Layer Approach to AI Safety](blog/01-a-multi-layer-approach-to-ai-safety.md) — why every layer above the chip is a witness and only silicon can be the lock, why the design targets NVIDIA's platform (CUDA, GPU attestation, BlueField-4), and the clues to the silicon design.
+- [A Multi-Layer Approach to AI Safety](blog/01-a-multi-layer-approach-to-ai-safety.md): why every layer above the chip is a witness and only silicon can be the lock, why the design targets NVIDIA's platform (CUDA, GPU attestation, BlueField-4), and the clues to the silicon design.
 - **The Chip That Says No**, a three-part series:
-  1. [Part 1, plain English](blog/02-the-chip-that-says-no-1-plain-english.md) — the drone and the school; why AI cannot police AI; the hot stove; the brain's three tricks; "can you undo it?"; STOP but never GO.
-  2. [Part 2, with the technical detail](blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) — the final common path, reference monitors, the amygdala's low road, efference copy, the veto window, reversibility, monotone alarms, the formal claim.
-  3. [Part 3, the silicon design: the action side](blog/04-the-chip-that-says-no-3-the-silicon-design.md) — the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, what a chip can know, where the bits live, the authorization protocol, the gate, the endpoint comparator, the assumptions register.
-  4. [Part 4, the compute side and the governor in the rack](blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) — the root of trust, confidential compute, the controller and its enforcement points, three kinds of provenance, how the layers interact, one request end to end, the Safety Governor (one per NVIDIA GPU, added through the rack's boards), the experiment program, what none of this solves.
+  1. [Part 1, plain English](blog/02-the-chip-that-says-no-1-plain-english.md): the drone and the school; why AI cannot police AI; the hot stove; the brain's three tricks; "can you undo it?"; STOP but never GO.
+  2. [Part 2, with the technical detail](blog/03-the-chip-that-says-no-2-with-the-technical-detail.md): the final common path, reference monitors, the amygdala's low road, efference copy, the veto window, reversibility, monotone alarms, the formal claim.
+  3. [Part 3, the silicon design: the action side](blog/04-the-chip-that-says-no-3-the-silicon-design.md): the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, what a chip can know, where the bits live, the authorization protocol, the gate, the endpoint comparator, the assumptions register.
+  4. [Part 4, the compute side and the governor in the rack](blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md): the root of trust, confidential compute, the controller and its enforcement points, three kinds of provenance, how the layers interact, one request end to end, the Safety Governor (one per NVIDIA GPU, added through the rack's boards), the experiment program, what none of this solves.
 
-The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor) — the design, a functional model of a rack of governed GPUs, the hypothesis suite H0 to H16, the RTL for the hard-core blocks, and the plan to put it on silicon.
+The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor): the design, a functional model of a rack of governed GPUs, the hypothesis suite H0 to H16, the RTL for the hard-core blocks, and the plan to put it on silicon.
 
 All in [`blog/`](blog/) as Markdown and Word, with figures (CC BY-NC 4.0, see License below).
 
@@ -145,15 +145,15 @@ The two watermarking posts that lead into it live in the [Watermark](https://git
 
 ## Documentation
 
-- [`docs/NVIDIA.md`](docs/NVIDIA.md) — how this lane sits on NVIDIA's Open Agent Safety Platform: supervisor middleware, derived OpenShell policy, Sentry as witness and kill switch, OCSF export
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the six-layer model, the decision order, trust anchors, and why the control plane roots below the model
-- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — adversaries, what each layer defends against, what this reference cannot defend against
-- [`docs/LANES.md`](docs/LANES.md) — the signed-assertion contracts between this repo, `safety` (Layer 3) and `Watermark` (Layer 2)
-- [`docs/SILICON.md`](docs/SILICON.md) — module-by-module mapping to hardware blocks, the properties only silicon gives, and the roadmap to the theoretical chip design
-- [`docs/CHIP_DESIGN.md`](docs/CHIP_DESIGN.md) — the chip design as a specification: the contract, the enforcement domain, layer placement, the assumptions register, the policy controller and its enforcement points, provenance, the authorization protocol, claims and hypotheses
-- [`docs/PROTOTYPING.md`](docs/PROTOTYPING.md) — the experiment program: Phase 1 (done, this repo), Phase 2 (DPU and workload attestation), Phase 3 (vendor silicon); tiers, scenarios, hypotheses and what would falsify each
-- [`docs/REVIEW-2026-10.md`](docs/REVIEW-2026-10.md) — the October 2026 design review: seven points, what each changed, and where
-- [`docs/USAGE.md`](docs/USAGE.md) — CLI, Python API, data formats, durable state and restart, extending the policy and the catalogue
+- [`docs/NVIDIA.md`](docs/NVIDIA.md): how this lane sits on NVIDIA's Open Agent Safety Platform: supervisor middleware, derived OpenShell policy, Sentry as witness and kill switch, OCSF export
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): the six-layer model, the decision order, trust anchors, and why the control plane roots below the model
+- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md): adversaries, what each layer defends against, what this reference cannot defend against
+- [`docs/LANES.md`](docs/LANES.md): the signed-assertion contracts between this repo, `safety` (Layer 3) and `Watermark` (Layer 2)
+- [`docs/SILICON.md`](docs/SILICON.md): module-by-module mapping to hardware blocks, the properties only silicon gives, and the roadmap to the theoretical chip design
+- [`docs/CHIP_DESIGN.md`](docs/CHIP_DESIGN.md): the chip design as a specification: the contract, the enforcement domain, layer placement, the assumptions register, the policy controller and its enforcement points, provenance, the authorization protocol, claims and hypotheses
+- [`docs/PROTOTYPING.md`](docs/PROTOTYPING.md): the experiment program: Phase 1 (done, this repo), Phase 2 (DPU and workload attestation), Phase 3 (vendor silicon); tiers, scenarios, hypotheses and what would falsify each
+- [`docs/REVIEW-2026-10.md`](docs/REVIEW-2026-10.md): the October 2026 design review: seven points, what each changed, and where
+- [`docs/USAGE.md`](docs/USAGE.md): CLI, Python API, data formats, durable state and restart, extending the policy and the catalogue
 
 ## The three lanes
 
@@ -172,8 +172,8 @@ message formats, defined in `docs/LANES.md`.
 This is a functional reference, not a secure implementation. The silicon root is
 emulated in Python: there is no physical isolation, no side-channel resistance,
 no fault-injection resistance, and the "fused" secret is a private attribute. The
-attacks in the catalogue are logical attacks — forged, replayed, swapped, stale,
-rewritten — and the stack blocks all of them; it says nothing about physical
+attacks in the catalogue are logical attacks (forged, replayed, swapped, stale,
+rewritten) and the stack blocks all of them; it says nothing about physical
 attacks, which is exactly the gap the silicon design (`docs/SILICON.md`) exists to
 close. Endpoints are stubs that describe an effect instead of causing one.
 

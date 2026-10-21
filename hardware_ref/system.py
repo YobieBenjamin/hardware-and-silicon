@@ -48,8 +48,8 @@ def default_policy(measurement: str, observer: str | list[str] = "obs-main", hig
     ``observer`` names the Layer 3 witness the observer-gated rules require:
     ``"obs-main"`` (the safety repo's observer), ``"sentry"`` (NVIDIA Sentry via
     the OASP adapter) or a list of both (every listed witness must pass).
-    ``high_authority_observer`` overrides it for ``human``-mode rules — the
-    highest-authority actions — so those can demand both witnesses while the
+    ``high_authority_observer`` overrides it for ``human``-mode rules (the
+    highest-authority actions) so those can demand both witnesses while the
     rest run on one. Each rule that reaches the network carries an ``egress``
     block, from which the OpenShell network policy is derived.
     """
@@ -233,7 +233,7 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
     sentry = SentryObserver("sentry", clock)
     registry = StubProvenanceRegistry("wm-registry", clock)
     approver_key = SigningKey.generate()
-    # The gate's key is derived the way DICE derives an alias key — from what booted — so a restart of
+    # The gate's key is derived the way DICE derives an alias key, from what booted, so a restart of
     # the same code yields the same key instead of a new one. (In silicon the input is the secret
     # CDI; here it is the two chips' certified alias identities, which is enough for a simulation.)
     gate_key = SigningKey.from_seed(hkdf(bytes.fromhex(cpu.alias_cert["payload"]["subject_pub"]) + bytes.fromhex(gpu.alias_cert["payload"]["subject_pub"]), b"gate-signing-key", 32))

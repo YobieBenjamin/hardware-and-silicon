@@ -106,7 +106,7 @@ Witness configuration lives in the policy: `build_oasp_node(observer="sentry")`
 is the default (Sentry required, nothing else), `observer=["sentry", "obs-main"]`
 requires both for every observer-gated action, and
 `high_authority_observer=["sentry", "obs-main"]` requires both only for
-`human`-mode rules — the recommended shape (`docs/NVIDIA.md`).
+`human`-mode rules, the recommended shape (`docs/NVIDIA.md`).
 
 ## Policy
 

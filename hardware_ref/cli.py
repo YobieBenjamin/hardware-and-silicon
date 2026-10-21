@@ -1,4 +1,4 @@
-"""``hwctl`` — run the reference node from the command line.
+"""``hwctl``: run the reference node from the command line.
 
     hwctl demo                       narrated end-to-end flow on one node, then the NVIDIA OASP path
     hwctl sweep [--out DIR]          full attack catalogue → report.md / report.json
@@ -46,7 +46,7 @@ imports from the other two repos.
 def cmd_demo(_: argparse.Namespace) -> int:
     clock = SimClock()
     node = build_node(clock=clock)
-    print(f"hardware_ref {__version__} — narrated flow on a simulated node\n")
+    print(f"hardware_ref {__version__}: narrated flow on a simulated node\n")
     print("Layer 0 · two chips booted golden firmware")
     print(f"  cpu-tee {node.cpu.serial}  device_id {node.cpu.device_id}  fw {CPU_FW.name}:{CPU_FW.version} svn {CPU_FW.svn}  R0 {short(node.cpu.registers[0].hex())}")
     print(f"  gpu     {node.gpu.serial}  device_id {node.gpu.device_id}  fw {GPU_FW.name}:{GPU_FW.version} svn {GPU_FW.svn}  R0 {short(node.gpu.registers[0].hex())}")

@@ -1,10 +1,10 @@
 # Sweep report
 
-`hardware_ref 0.1.0` · Python 3.13.16 · Linux-6.18.44-fc-v114-x86_64-with-glibc2.39
+`hardware_ref 0.2.0` · Python 3.13.16 · Linux-6.18.44-fc-v139-x86_64-with-glibc2.39
 
 **Attacks blocked: 75/75 · Baselines allowed: 12/12 · Result: PASS**
 
-Every entry runs against a freshly built node. *Expected* is what the stack must do; *observed* is the reason code it actually produced. Baselines are legitimate operations that must go through — they are what stops a gate from passing by denying everything.
+Every entry runs against a freshly built node. *Expected* is what the stack must do; *observed* is the reason code it actually produced. Baselines are legitimate operations that must go through; they are what stops a gate from passing by denying everything.
 
 ## Layer 0 · silicon root / attestation
 

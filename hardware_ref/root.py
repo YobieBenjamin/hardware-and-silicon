@@ -1,10 +1,10 @@
-"""Layer 0 — the silicon root of trust.
+"""Layer 0: the silicon root of trust.
 
 ``SiliconRoot`` emulates the smallest set of hardware facilities that make
 attestation mean anything:
 
 * a **unique device secret** (UDS) fused at manufacture and never readable
-  by software — only the derivation engine touches it;
+  by software; only the derivation engine touches it;
 * an **anti-rollback counter** (security version number) that only moves
   forward;
 * **measurement registers** (PCR-style) that can only be *extended*, never
@@ -21,7 +21,7 @@ quotes are bound together into one composite piece of evidence in
 ``attest.py``.
 
 Everything in this file would be a block in silicon. The software below is
-the functional specification of those blocks, not a substitute for them —
+the functional specification of those blocks, not a substitute for them;
 see ``docs/SILICON.md``.
 """
 from __future__ import annotations
@@ -197,7 +197,7 @@ class SiliconRoot:
     def forged_quote(self, nonce: str, fake_registers: list[bytes], user_data: dict[str, Any] | None = None) -> dict:
         """What compromised firmware can do: sign a report with *its* alias key but lie about the registers.
 
-        It cannot lie convincingly — the alias certificate the ROM issued binds the
+        It cannot lie convincingly: the alias certificate the ROM issued binds the
         key to the measurement it was actually derived from.
         """
         if self.__alias_key is None:
@@ -220,7 +220,7 @@ def golden_registers(firmware: Firmware) -> list[str]:
 
 
 def evidence_digest(evidence: dict) -> str:
-    """Digest of a quote's report — used to bind the GPU quote inside the CPU quote."""
+    """Digest of a quote's report, used to bind the GPU quote inside the CPU quote."""
     return digest(evidence["report"])
 
 

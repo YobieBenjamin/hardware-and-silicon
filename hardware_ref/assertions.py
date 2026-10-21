@@ -1,7 +1,7 @@
 """Lane interfaces: what the control plane accepts from Layer 2 and Layer 3.
 
 The three repositories stay in separate lanes. This module defines the
-*only* coupling between them — two signed assertion formats — and ships a
+*only* coupling between them, two signed assertion formats, and ships a
 stub producer for each so the gate can be tested without importing either
 other repo.
 

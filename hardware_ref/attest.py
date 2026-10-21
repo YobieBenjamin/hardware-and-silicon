@@ -2,15 +2,15 @@
 
 Roles follow the IETF RATS architecture (RFC 9334):
 
-* **Attester** — the chips in ``root.py`` produce *evidence* (signed quotes).
-* **Verifier** — ``AttestationVerifier`` appraises evidence against
+* **Attester**: the chips in ``root.py`` produce *evidence* (signed quotes).
+* **Verifier**: ``AttestationVerifier`` appraises evidence against
   *reference values* and *endorsements* and issues *attestation results*.
-* **Relying party** — the Layer 4 gate (``gate.py``) consumes the result as
+* **Relying party**: the Layer 4 gate (``gate.py``) consumes the result as
   a short-lived signed token and never looks at raw evidence.
 
 Layer 5 is the governance root: the key that signs reference values,
 revocation lists and the gate's policy. It is deliberately *not* the silicon
-vendor — the party that says which firmware may run a consequential
+vendor, the party that says which firmware may run a consequential
 workload is not the party that sold the chip.
 
 Verification order (each step fails closed with a reason code)::
@@ -231,7 +231,7 @@ class AttestationVerifier:
         nonce_reason = self._check_nonce(nonce)
         if nonce_reason:
             reasons.append(nonce_reason)
-        # consume the nonce on first use, success or failure — a replay of a failed attempt is still a replay
+        # consume the nonce on first use, success or failure; a replay of a failed attempt is still a replay
         if nonce in self._nonces:
             self._used.add(nonce)
         reasons += [f"cpu.{r}" for r in self.appraise(bundle["cpu"], expected_nonce=nonce, check_nonce_table=False)]

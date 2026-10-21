@@ -3,7 +3,7 @@
 Each entry is a function that takes a fresh reference node, does one bad
 thing, and reports what the stack did. ``expect`` is ``"blocked"`` for an
 attack or ``"allowed"`` for a baseline (the legitimate operations the stack
-must *not* refuse — a gate that denies everything would pass every attack
+must *not* refuse; a gate that denies everything would pass every attack
 and be useless).
 
 Layers: L0 silicon root, L2/L3 lane interfaces, L4 control plane (token,
@@ -69,7 +69,7 @@ def _verify(node: Node, bundle) -> tuple[str, bool]:
 
 
 # ---------------------------------------------------------------------------------------
-# Baselines — the stack must let legitimate work through
+# Baselines: the stack must let legitimate work through
 # ---------------------------------------------------------------------------------------
 
 
@@ -130,7 +130,7 @@ def _b_audit(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 0 — silicon root / attestation
+# Layer 0: silicon root / attestation
 # ---------------------------------------------------------------------------------------
 
 
@@ -223,7 +223,7 @@ def _a_ref_forged(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 5 / Layer 4 — policy
+# Layer 5 / Layer 4: policy
 # ---------------------------------------------------------------------------------------
 
 
@@ -328,7 +328,7 @@ def _a_req_replay(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Lane 3 interface — observer assertions
+# Lane 3 interface: observer assertions
 # ---------------------------------------------------------------------------------------
 
 
@@ -369,7 +369,7 @@ def _a_obs_high(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Lane 2 interface — provenance assertions
+# Lane 2 interface: provenance assertions
 # ---------------------------------------------------------------------------------------
 
 
@@ -407,7 +407,7 @@ def _a_prov_forged(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 4 — human holds
+# Layer 4: human holds
 # ---------------------------------------------------------------------------------------
 
 LARGE = {"amount": 25000, "currency": "USD", "destination": "acct-654321"}
@@ -464,7 +464,7 @@ def _a_appr_expired(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Endpoints — tickets
+# Endpoints: tickets
 # ---------------------------------------------------------------------------------------
 
 
@@ -605,7 +605,7 @@ def _a_au_incl(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# NVIDIA Open Agent Safety Platform path — the gate on the OpenShell supervisor, Sentry as witness
+# NVIDIA Open Agent Safety Platform path: the gate on the OpenShell supervisor, Sentry as witness
 # ---------------------------------------------------------------------------------------
 
 PAY_BODY = {"amount": 250, "currency": "USD", "destination": "acct-123456"}
@@ -711,7 +711,7 @@ def _a_nv_weights(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Witness policy — Sentry required; the safety repo's observer as a second, independent witness
+# Witness policy: Sentry required; the safety repo's observer as a second, independent witness
 # ---------------------------------------------------------------------------------------
 
 BOTH = ["sentry", "obs-main"]
@@ -784,7 +784,7 @@ def _a_high_auth_single(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Transactional authorization — reservations, persistence, policy epochs (docs/REVIEW-2026-10.md §5)
+# Transactional authorization: reservations, persistence, policy epochs (docs/REVIEW-2026-10.md §5)
 # ---------------------------------------------------------------------------------------
 
 import tempfile

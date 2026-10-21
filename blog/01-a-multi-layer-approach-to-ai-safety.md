@@ -95,7 +95,7 @@ Our software blocks every logical attack in the catalogue. It cannot give five p
 
 ## Clues to the silicon design
 
-The comprehensive design is the next post, and I want it to land as a design, not a sketch, so this section is deliberately a set of clues.
+The full design is the next post, and I want it to land as a design, not a sketch, so this section is deliberately a set of clues.
 
 - **The chokepoint is I/O, not compute.** A model can think whatever it likes inside the GPU. Nothing it thinks matters until bytes leave: over NVLink to another GPU, over PCIe to the host, over the network. Those are the wires the comparator sits on. Gating kernel launches would be the wrong place; gating egress is the right one.
 - **Three placements, in order of ambition.** First the DPU, programmed with DOCA, beside Sentry, because the hardware ships and the chokepoint is already there. Second a board-level safety controller between the GPU's egress and the rest of the system, which also covers GPU-to-GPU traffic. Third an I/O-stage block inside the GPU itself, next to the attestation root it already has. Each placement gives properties the one before cannot.
@@ -110,7 +110,7 @@ The comprehensive design is the next post, and I want it to land as a design, no
 |---|---|---|
 | 1 | Functional reference: every block as software, every attack as a test, message formats fixed | Done |
 | 2 | Formal specification: state machines for the root, the gate and the log; invariants written down (no ticket without a token, no allow without a rule, log head only moves forward) and model-checked against the code | Next |
-| 3 | The silicon design: block diagram, interfaces, the lookup-table and comparator micro-architecture, key and fuse map, latency and area estimates for the three placements, written for NVIDIA's platform | The comprehensive post |
+| 3 | The silicon design: block diagram, interfaces, the lookup-table and comparator micro-architecture, key and fuse map, latency and area estimates for the three placements, written for NVIDIA's platform | The design post |
 | 4 | Emulation: the Layer 4 block on an FPGA, driven by this same harness over a real PCIe or Ethernet path | After 3 |
 
 ## The point

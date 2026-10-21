@@ -17,7 +17,7 @@ Three independent mechanisms make the log tamper-evident:
 In silicon: entries go to append-only NVM, the head hash and size live in a
 monotonic register the root of trust owns, and checkpoints are signed by
 the chip. Software then cannot truncate the log without the counter
-disagreeing — see ``docs/SILICON.md``.
+disagreeing; see ``docs/SILICON.md``.
 """
 from __future__ import annotations
 

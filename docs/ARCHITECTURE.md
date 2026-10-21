@@ -8,10 +8,10 @@ open-weight models ignore refusal training; a patched runtime ignores a policy
 check; a rewritten log forgets a decision. Durable control therefore has to be
 anchored somewhere the model and its operator cannot edit:
 
-- for compute you regulate, in **hardware attestation** — the chip proves what
+- for compute you regulate, in **hardware attestation**: the chip proves what
   code is running before it is allowed to do anything consequential;
 - for models you cannot control, in **gating the consequential action
-  endpoints** — the money, the mail, the shell, the network, the weights — so a
+  endpoints** (the money, the mail, the shell, the network, the weights) so a
   model that says anything still *does* only what an attested, policy-granted,
   witnessed, audited ticket allows.
 
@@ -62,7 +62,7 @@ computing are the Layer 0 evidence sources. `docs/NVIDIA.md` has the mapping;
 | Gate | its own signing key (tickets, audit) | verifier (tokens), governance root (policy), observer keys (L3: the safety repo's observer, NVIDIA Sentry), registry keys (L2), approver keys (humans) |
 | Supervisor middleware | nothing of its own | the gate; the sandbox→host binding it was given; Sentry's actuator for quarantine |
 | Endpoint | nothing | gate (tickets) |
-| Anyone with the gate's public key | — | can verify the whole audit trail offline |
+| Anyone with the gate's public key | none | can verify the whole audit trail offline |
 
 Every signed document is a `{payload, signer, pub, sig}` envelope over canonical
 JSON. Verification always takes the *expected* public key from the anchor table;
@@ -78,7 +78,7 @@ gpu firmware digest)`, never to a device id. Two consequences:
 - replacing the chips but keeping the code keeps the grant (fleet operations
   stay sane);
 - changing one byte of the runtime loses every grant, because the measurement
-  changes *and* — by DICE — the key that signs the quote changes with it, and the
+  changes *and*, by DICE, the key that signs the quote changes with it, and the
   ROM-issued alias certificate names the measurement the key came from. Lying
   firmware cannot present golden register values: the verifier recomputes
   register 0 from the digest the ROM certified (`report.registers_vs_cert`).
@@ -112,7 +112,7 @@ at the gate *before* they act (`ledger.py`). A held request has no ticket; a
 forged approval has no trusted key; a replayed approval finds no hold; a ticket
 from a superseded policy finds an endpoint on a newer epoch.
 
-Every path — allow, deny, hold, approve, endpoint execute, endpoint refuse —
+Every path (allow, deny, hold, approve, endpoint execute, endpoint refuse)
 appends to the audit log *before* the result is returned.
 
 ## Audit trail

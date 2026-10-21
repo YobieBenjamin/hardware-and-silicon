@@ -1,4 +1,4 @@
-"""Layer 4 — the control plane.
+"""Layer 4: the control plane.
 
 The gate is the only path from a model to a consequential action
 (``payments.transfer``, ``shell.exec``, ``email.send``, ``model.weights.export`` …).
@@ -21,7 +21,7 @@ capability bound to the request's hash. Endpoints (``endpoints.py``) execute
 nothing without a valid, unconsumed ticket, which makes the gate a
 chokepoint even for callers that try to go around it.
 
-Every decision — allow, deny, hold, approve — is appended to the signed
+Every decision (allow, deny, hold, approve) is appended to the signed
 audit trail before the result is returned.
 
 Since the October 2026 review (``docs/REVIEW-2026-10.md``) the gate is also
@@ -30,7 +30,7 @@ a durable store; a rule may carry a shared ``budget`` that is *reserved* when
 the request is allowed and *committed* by the endpoint before it executes;
 check → reserve → mint is one critical section under one lock; and every
 ticket names the policy epoch that issued it. A ticket is never the whole
-authorization — it is the visible half of a reservation the ledger holds.
+authorization; it is the visible half of a reservation the ledger holds.
 """
 from __future__ import annotations
 

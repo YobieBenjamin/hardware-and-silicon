@@ -46,7 +46,7 @@ Checks the gate performs, in order, each fail-closed:
 4. `issued_at ≥ now − observer_freshness_s` and `expires_at ≥ now` (`observer.stale`);
 5. `risk ≤ requirement.max_risk` (`observer.risk_above_threshold`).
 
-How `risk` is computed is the `safety` repo's business — or NVIDIA Sentry's,
+How `risk` is computed is the `safety` repo's business, or NVIDIA Sentry's,
 when the assertion comes from the `oasp` adapter. `flags` are free-form and are
 copied into the audit record for humans; the gate does not interpret them. A
 rule may require one observer (`"observer": "sentry"`) or several

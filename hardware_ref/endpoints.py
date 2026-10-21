@@ -3,7 +3,7 @@
 An endpoint is anything whose effect reaches outside the model: moving
 money, sending mail, running a shell, posting to a URL, exporting weights.
 In this reference stack every endpoint is a stub that records what it would
-have done — the point is not the effect, it is the *admission control*:
+have done. The point is the *admission control*, not the effect:
 
 * nothing executes without an action ticket;
 * the ticket must be signed by the gate, unexpired, bound to this exact
@@ -19,7 +19,7 @@ After the October 2026 review the endpoint is the committing half of a
 transaction (``ledger.py``): the consumed-ticket set is durable, a ticket
 must name the policy epoch the endpoint currently accepts, a ticket minted
 for another endpoint is refused, and the reservation the ticket carries is
-committed at the gate *before* the handler runs — if the gate cannot be
+committed at the gate *before* the handler runs; if the gate cannot be
 reached, the endpoint fails closed rather than acting on an uncommitted
 authorization.
 """

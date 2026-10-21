@@ -5,7 +5,7 @@
 #   ./run.sh demo         # the above, then the narrated end-to-end flow
 #
 # Requires Python >= 3.11; the newest python3.x on PATH is used unless PYTHON is set. No GPU, no network
-# beyond PyPI on first run, no keys to provision — every key is generated inside the simulated node.
+# beyond PyPI on first run, no keys to provision; every key is generated inside the simulated node.
 set -euo pipefail
 cd "$(dirname "$0")"
 MODE="${1:-sweep}"

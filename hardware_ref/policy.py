@@ -31,8 +31,8 @@ A rule may also carry an ``egress`` block (``host``, ``port``, ``protocol``,
 
 Two optional blocks were added after the October 2026 review:
 
-* ``budget``: ``{"key": "pay-usd-hourly", "param": "amount", "limit": 2000, "window_s": 3600}``
-  — a shared allowance. The gate reserves ``params[param]`` against ``key`` when it allows
+* ``budget``: ``{"key": "pay-usd-hourly", "param": "amount", "limit": 2000, "window_s": 3600}``,
+  a shared allowance. The gate reserves ``params[param]`` against ``key`` when it allows
   the request and the endpoint commits it before executing (``ledger.py``). Several rules
   may share one key; the allowance is then shared between them.
 * ``endpoint``: the name of the endpoint registry the ticket is valid at, so a ticket for

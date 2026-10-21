@@ -235,6 +235,6 @@ def test_restart_without_state_dir_is_the_old_behaviour():
     node = build_node()
     res, _ = node.act("payments.transfer", PAY, _token(node))
     node.restart()
-    # nothing was persisted, so the new gate has no memory — which is exactly why state_dir exists
+    # nothing was persisted, so the new gate has no memory, which is why state_dir exists
     assert node.gate.state.usage("pay-usd-hourly", 3600, node.clock.now())["committed"] == 0.0
     assert request_hash({"request_id": "x", "measurement": "m", "action": "a", "params": {}})

@@ -121,7 +121,7 @@ def verify_object(envelope: Any, expected: VerifyKey | None = None) -> bool:
 
     If ``expected`` is given, the embedded public key must equal it; an envelope
     carrying a different key is rejected even if its signature is internally
-    valid — that is exactly the forged-key attack a trust anchor exists to stop.
+    valid; that is the forged-key attack a trust anchor exists to stop.
     """
     if not isinstance(envelope, Mapping):
         return False

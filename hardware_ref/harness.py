@@ -90,7 +90,7 @@ def run_sweep(out_dir: str | None = None, *, quiet: bool = False) -> dict:
 
 def render_text(summary: dict) -> str:
     lines = [
-        f"hardware_ref {summary['version']} sweep — Python {summary['python']} on {summary['machine']}",
+        f"hardware_ref {summary['version']} sweep: Python {summary['python']} on {summary['machine']}",
         f"attacks blocked   {summary['attacks_blocked']}/{summary['attacks']}",
         f"baselines allowed {summary['baselines_allowed']}/{summary['baselines']}",
     ]
@@ -115,7 +115,7 @@ def render_markdown(summary: dict) -> str:
         "",
         "Every entry runs against a freshly built node. *Expected* is what the stack must do; "
         "*observed* is the reason code it actually produced. Baselines are legitimate operations "
-        "that must go through — they are what stops a gate from passing by denying everything.",
+        "that must go through; they are what stops a gate from passing by denying everything.",
         "",
     ]
     for layer, title in LAYER_NAMES.items():
