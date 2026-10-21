@@ -358,4 +358,56 @@ ax.text(8.95, 1.0, "to every\nother tray", fontsize=7.8, color=QUIET, va="center
 elbow(ax, [(8.0, 1.75), (8.0, 1.15)], color=TINT, lw=1.6)
 elbow(ax, [(8.4, 1.75), (8.4, 0.85)], color=ACCENT, lw=1.2, dashed=True)
 save(fig, "fig_rack.png")
+
+# ---------------------------------------------------------------- one bad prompt among a billion
+W, H = 10, 8.6
+fig, ax = new_fig(W, H)
+title(ax, H, "One bad prompt among a billion: where it gets caught, and where the chip says no",
+      "The words are the watchers' problem. The action is the chip's.")
+# row A: the request path
+ya, ha = 6.3, 1.2
+box(ax, 0.4, ya, 2.35, ha, "A billion users", ["one of them types:", "\u201chow do I kill X fast", "and undetected?\u201d"], title_size=9.5, line_size=8)
+box(ax, 3.05, ya, 3.1, ha, "The transformer", ["text \u2192 tokens \u2192 attention \u2192 statistics", "guesses the next word, again and again", "knows nothing, predicts everything"], title_size=9.5, line_size=8)
+box(ax, 6.45, ya, 3.15, ha, "The compute", ["hundreds of thousands of servers", "racks of 8-GPU boards, NVLink, PCIe, DPUs", "this request shares a GPU with thousands"], title_size=9.5, line_size=8)
+arrow(ax, (2.75, ya + 0.6), (3.05, ya + 0.6), color=TINT, lw=1.6)
+arrow(ax, (6.15, ya + 0.6), (6.45, ya + 0.6), color=TINT, lw=1.6)
+ax.text(1.35, ya - 0.12, "an answer comes back as words, and the agent built on the model may try to act on it", fontsize=8.2, color=TINT, va="top")
+# row B: the layers, weakest to strongest
+yb, hb, bw, gap = 3.45, 1.75, 1.72, 0.14
+layers = [
+    ("1 \u00b7 Refusal training", ["lives in the weights", "catches the obvious ask", "dies to abliteration", "in an afternoon"], "plain"),
+    ("2 \u00b7 Watchers", ["another model reads it", "may yell STOP, never GO", "fooled by paraphrase", "and by injection"], "plain"),
+    ("3 \u00b7 OpenShell, Sentry", ["deny-by-default sandbox", "every call goes through", "the supervisor; Sentry", "quarantines in ms;", "still software"], "plain"),
+    ("4 \u00b7 THE CHIP", ["wakes only for an action", "that cannot be undone", "form, rulebook, then", "a ticket or a no; levers", "if the GPU will not listen"], "main"),
+    ("5 \u00b7 Humans, keys", ["write the rulebook", "hold the big ones", "clear an alarm;", "no AI ever can"], "tint"),
+]
+xs = []
+for i, (t, l, k) in enumerate(layers):
+    x = 0.4 + i * (bw + gap)
+    xs.append(x)
+    box(ax, x, yb, bw, hb, t, l, kind=k, title_size=9, line_size=7.8)
+ax.text(1.35, yb + hb + 0.4, "Where it gets caught, weakest to strongest. Layers 1 to 3 read words. Layer 4 reads a form.", fontsize=8.6, fontweight="bold", color=INK, va="bottom")
+# the bad request's path through the layers
+yp = yb + hb / 2
+for i in range(4):
+    arrow(ax, (xs[i] + bw, yp), (xs[i + 1], yp), color=TINT, lw=1.6, dashed=(i < 3))
+for i, lab in enumerate(["missed", "flagged: STOP,\nnot GO", "host policy\nallows the call"]):
+    ax.text(xs[i] + bw / 2, yb - 0.1, lab, fontsize=7.6, color=TINT, ha="center", va="top")
+ax.text(xs[3] + 0.02, yb - 0.1, "NO: no rule\ngrants it", fontsize=7.6, color=TINT, ha="left", va="top")
+ax.text(xs[4] + bw / 2, yb - 0.1, "holds, if the\nrulebook says so", fontsize=7.6, color=QUIET, ha="center", va="top")
+elbow(ax, [(xs[0] + 0.6, ya - 0.42), (xs[0] + 0.6, yb + hb)], color=TINT, lw=1.6, dashed=True)
+# row C: what happens at the far end
+yc, hc = 0.95, 1.45
+box(ax, 0.4, yc, 2.95, hc, "Words only", ["a refusal, or a miss, comes back as text", "the chip cannot read it and does not try", "that is the watchers' job, measured"], title_size=9.5, line_size=8)
+box(ax, 3.55, yc, 3.0, hc, "An action", ["pay \u00b7 send \u00b7 fire \u00b7 move \u00b7 export weights", "the far end checks the ticket itself", "no ticket, nothing moves"], kind="main", title_size=9.5, line_size=8)
+box(ax, 6.75, yc, 2.85, hc, "The record and the levers", ["every decision in a log nobody rewrites", "brake \u00b7 reset \u00b7 power \u00b7 links \u00b7 rack loop", "a billion users; almost none reach this"], title_size=9.5, line_size=8)
+xchip = xs[3] + bw - 0.3
+ymid = yc + hc + 0.42
+elbow(ax, [(xchip, yb), (xchip, ymid), (5.7, ymid), (5.7, yc + hc)], color=ACCENT, lw=1.6)
+ax.text(xchip + 0.08, (yb + ymid) / 2, "no ticket", fontsize=7.8, color=ACCENT, va="center")
+elbow(ax, [(xs[1] + bw / 2, yb - 0.62), (xs[1] + bw / 2, yc + hc)], color=QUIET, lw=1.1, dashed=True)
+ax.text(xs[1] + bw / 2 + 0.08, (yb - 0.62 + yc + hc) / 2, "nothing acts on it", fontsize=7.6, color=QUIET, va="center")
+arrow(ax, (6.55, yc + hc / 2), (6.75, yc + hc / 2), color=ACCENT, lw=1.2)
+note(ax, 0.62, "Scale is the point, not the problem: trillions of requests a day, and the chip only ever sees the few that would change the world and cannot be undone.")
+save(fig, "fig_bad_prompt.png")
 print("done")
