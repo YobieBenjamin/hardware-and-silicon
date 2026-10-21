@@ -27,6 +27,7 @@ const POSTS = [
   { src: "03-the-chip-that-says-no-2-with-the-technical-detail.md", series: "The Chip That Says No · Part 2 of 4" },
   { src: "04-the-chip-that-says-no-3-the-silicon-design.md", series: "The Chip That Says No · Part 3 of 4" },
   { src: "05-the-chip-that-says-no-4-the-governor-in-the-rack.md", series: "The Chip That Says No · Part 4 of 4" },
+  { src: "06-the-chip-that-says-no-5-what-the-first-experiments-found.md", series: "The Chip That Says No · Part 5: what the first experiments found" },
 ].map((p) => ({ ...p, out: p.src.replace(/\.md$/, ".docx") }));
 
 // ------------------------------------------------------------------ inline markdown
