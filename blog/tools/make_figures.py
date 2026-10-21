@@ -492,4 +492,224 @@ yn = min(in_bottom, out_bottom, chip_bottom) - 0.25
 note(ax, yn, "What it cannot know: what the words mean, whether the rulebook is a good one, whether a witness is right.")
 note(ax, yn - 0.24, "Those are people problems, handled by signatures and by measurement, and the chip is built so that none of them can be solved by talking to it.")
 save(fig, "fig_chip_inside.png")
+
+# ================================================================ Part 6: there is no kill switch
+# The numbers in these figures come from safety-governor/proofs/no_global_kill_switch.py
+# (commit 2709977): a 6-regular core of 60 nodes, 12 instances, 10 effectors, 20 users, 20 services,
+# one local pair. Deep cut: none. Edge cut: 43 nodes, 72% of the core, 19% of bystander pairs severed.
+# End cuts: 11 (effectors) and 13 (instances), no bystander touched. Irreversible exits only: 6.
+import math
+from matplotlib.patches import Circle, Rectangle
+
+def dot(ax, x, y, r=0.09, fc="white", ec=EDGE, lw=1.2, z=3):
+    ax.add_patch(Circle((x, y), r, fc=fc, ec=ec, lw=lw, zorder=z))
+
+def line(ax, p, q, color=RULE, lw=0.9, z=1, dashed=False):
+    ax.plot([p[0], q[0]], [p[1], q[1]], color=color, lw=lw, zorder=z, linestyle="--" if dashed else "-")
+
+def mesh(ax, cx, cy, rx, ry, n=14, seed=4, color=RULE, lw=0.8, ring_links=3):
+    """A ring of n nodes with cross links: a network with no middle. Returns the node positions."""
+    rnd = random.Random(seed)
+    pts = [(cx + rx * math.cos(2 * math.pi * i / n), cy + ry * math.sin(2 * math.pi * i / n)) for i in range(n)]
+    for i in range(n):
+        line(ax, pts[i], pts[(i + 1) % n], color=color, lw=lw)
+        for _ in range(ring_links):
+            j = rnd.randrange(n)
+            if j != i:
+                line(ax, pts[i], pts[j], color=color, lw=lw * 0.8)
+    for p in pts:
+        dot(ax, *p, r=0.07, fc="white", ec=QUIET, lw=1.0)
+    return pts
+
+import random
+
+# ---------------------------------------------------------------- 1. the button in your head
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "The picture in your head, and the picture that is true", "Left: one AI, one wire, one button. Right: thousands of copies, a network with no middle, and the devices at its edges.")
+# left: the imagined button
+box(ax, 0.6, 1.6, 2.0, 1.3, "THE AI", ["one machine", "one wire"], kind="plain", title_size=10, line_size=8.2)
+ax.add_patch(Circle((1.6, 0.85), 0.32, fc=TINT, ec=INK, lw=1.5, zorder=3))
+ax.text(1.6, 0.85, "OFF", fontsize=8.5, fontweight="bold", color="white", ha="center", va="center", zorder=4)
+line(ax, (1.6, 1.17), (1.6, 1.6), color=INK, lw=2)
+ax.text(1.6, 0.35, "does not exist", fontsize=8.6, color=TINT, ha="center", fontweight="bold")
+ax.plot([3.3, 3.3], [0.4, 3.9], color=RULE, lw=1)
+# right: copies, mesh, devices
+pts = mesh(ax, 6.7, 2.05, 1.35, 0.95, n=14, seed=4)
+rnd = random.Random(11)
+for i in range(16):   # model copies on the left and top
+    x = 4.0 + (i % 4) * 0.28 + rnd.uniform(-0.05, 0.05)
+    y = 1.1 + (i // 4) * 0.55 + rnd.uniform(-0.08, 0.08)
+    dot(ax, x, y, r=0.085, fc=GRAY_FILL, ec=QUIET)
+    line(ax, (x, y), pts[rnd.randrange(len(pts))], color=RULE, lw=0.6)
+ax.text(4.4, 3.2, "model copies, everywhere,\nnone of them needs the others", fontsize=8.2, color=QUIET, ha="center", va="bottom")
+for j, lab in enumerate(["bank", "drone", "robot", "grid", "weights"]):
+    y = 0.75 + j * 0.65
+    box(ax, 8.65, y - 0.2, 1.05, 0.44, lab, kind="tint", title_size=8.2, pad=0.08)
+    line(ax, pts[(3 * j) % len(pts)], (8.65, y), color=RULE, lw=0.7)
+ax.text(9.17, 3.72, "devices that act", fontsize=8.2, color=TINT, ha="center", va="bottom", fontweight="bold")
+ax.text(6.7, 0.42, "the network: built in 1964 to have no centre to hit", fontsize=8.2, color=QUIET, ha="center")
+save(fig, "fig_ks_picture.png")
+
+# ---------------------------------------------------------------- 2. Menger, with roads and guards
+W, H = 10, 4.8
+fig, ax = new_fig(W, H)
+title(ax, H, "Menger's theorem (1927), with roads and guards", "To stop all traffic between two places you need exactly as many guards as there are separate roads.")
+# panel A: three disjoint roads
+box(ax, 0.5, 1.7, 1.1, 0.7, "Town A", kind="plain", title_size=9, pad=0.1)
+box(ax, 3.9, 1.7, 1.1, 0.7, "Town B", kind="plain", title_size=9, pad=0.1)
+for k, yy in enumerate([3.1, 2.05, 1.0]):
+    ax.plot([1.6, 2.3, 3.2, 3.9], [2.05, yy, yy, 2.05], color=QUIET, lw=1.6)
+    dot(ax, 2.75, yy, r=0.11, fc=TINT if k < 2 else "white", ec=TINT if k < 2 else QUIET, lw=1.4)
+ax.text(2.75, 3.45, "three roads that share no crossing", fontsize=8.2, color=QUIET, ha="center")
+ax.text(2.75, 0.55, "two guards: traffic still gets through on the third road", fontsize=8.2, color=TINT, ha="center")
+ax.text(2.75, 0.3, "three guards: stopped. Not two. Three.", fontsize=8.2, color=INK, ha="center", fontweight="bold")
+ax.plot([5.3, 5.3], [0.3, 3.6], color=RULE, lw=1)
+# panel B: a house with one driveway
+pts = mesh(ax, 6.7, 2.05, 0.9, 0.85, n=10, seed=2)
+box(ax, 8.6, 1.7, 1.1, 0.7, "The house", kind="tint", title_size=9, pad=0.1)
+line(ax, pts[0], (8.6, 2.05), color=QUIET, lw=1.8)
+dot(ax, (pts[0][0] + 8.6) / 2, (pts[0][1] + 2.05) / 2, r=0.12, fc=ACCENT, ec=ACCENT)
+ax.text(7.5, 3.45, "the roads come together at the driveway", fontsize=8.2, color=QUIET, ha="center")
+ax.text(7.5, 0.55, "one guard, at the door, stops everything", fontsize=8.2, color=ACCENT, ha="center", fontweight="bold")
+ax.text(7.5, 0.3, "the smallest cut is where the paths are fewest: at the ends", fontsize=8.2, color=INK, ha="center")
+save(fig, "fig_ks_menger.png")
+
+# ---------------------------------------------------------------- 3. the whole thing as a graph
+W, H = 10, 5.9
+fig, ax = new_fig(W, H)
+title(ax, H, "The whole thing as a graph: copies, the network, the devices, and everyone else", "A kill switch is a set of nodes you remove so that no path is left from any copy to any device that acts.")
+rnd = random.Random(5)
+pts = mesh(ax, 5.0, 2.3, 1.9, 1.15, n=18, seed=9)
+# sources on the left: model copy -> compute
+for i in range(6):
+    y = 0.9 + i * 0.55
+    dot(ax, 0.7, y, r=0.09, fc=GRAY_FILL, ec=QUIET)
+    dot(ax, 1.55, y, r=0.1, fc=ACCENT_FILL, ec=ACCENT, lw=1.4)
+    line(ax, (0.7, y), (1.55, y), color=QUIET, lw=1.0)
+    for _ in range(3):
+        line(ax, (1.55, y), pts[rnd.randrange(len(pts))], color=RULE, lw=0.6)
+ax.text(0.7, 4.35, "model copies", fontsize=8.4, color=QUIET, ha="center", fontweight="bold")
+ax.text(1.55, 4.1, "the chip\nit runs on", fontsize=7.8, color=ACCENT, ha="center")
+# effectors on the right: controller -> actuator
+for j, lab in enumerate(["money", "release line", "motor", "relay", "weights"]):
+    y = 1.0 + j * 0.6
+    dot(ax, 8.45, y, r=0.1, fc=ACCENT_FILL, ec=ACCENT, lw=1.4)
+    box(ax, 8.85, y - 0.19, 0.95, 0.4, lab, kind="tint", title_size=7.8, pad=0.07)
+    line(ax, (8.45, y), (8.85, y), color=QUIET, lw=1.0)
+    for _ in range(3):
+        line(ax, (8.45, y), pts[rnd.randrange(len(pts))], color=RULE, lw=0.6)
+ax.text(8.45, 4.1, "the device's\ncontroller", fontsize=7.8, color=ACCENT, ha="center")
+ax.text(9.3, 4.35, "the deed", fontsize=8.4, color=TINT, ha="center", fontweight="bold")
+# bystanders top and bottom
+for i in range(5):
+    x = 3.4 + i * 0.8
+    dot(ax, x, 4.3, r=0.08, fc="white", ec=EDGE)
+    line(ax, (x, 4.3), pts[rnd.randrange(len(pts))], color=RULE, lw=0.5)
+    dot(ax, x, 0.55, r=0.08, fc="white", ec=EDGE)
+    line(ax, (x, 0.55), pts[rnd.randrange(len(pts))], color=RULE, lw=0.5)
+ax.text(5.0, 4.55, "everyone else: people and services that use the same network", fontsize=8.2, color=QUIET, ha="center")
+ax.text(5.0, 0.28, "the network: many separate roads between any two points, by design", fontsize=8.2, color=QUIET, ha="center")
+save(fig, "fig_ks_graph.png")
+
+# ---------------------------------------------------------------- 4. where could the switch go
+W, H = 10, 5.3
+fig, ax = new_fig(W, H)
+title(ax, H, "Where could the switch go? Five places, measured on the model", "Guards needed to separate every copy from every device, and how many bystanders each cut takes with it.")
+cols = [("Deep in the network", None, None, "no cut exists:\nthe middle is too connected"),
+        ("At the edge, one hop\nfrom every machine", 43, 19, "72% of the core removed;\nneeds the list of every machine"),
+        ("At the devices\n(one guard each)", 11, 0, "one per device that acts"),
+        ("At the chips\n(one guard each)", 13, 0, "one per model copy"),
+        ("Only the devices whose\ndeed cannot be undone", 6, 0, "“can you undo it?” shrinks it")]
+x0, bw, gap = 0.9, 1.5, 0.3
+maxv = 50
+for i, (lab, guards, byst, note_) in enumerate(cols):
+    x = x0 + i * (bw + gap)
+    if guards is None:
+        ax.add_patch(Rectangle((x, 1.35), bw, 2.2, fill=False, ec=TINT, lw=1.2, linestyle="--"))
+        ax.text(x + bw / 2, 2.45, "none", fontsize=11, color=TINT, ha="center", va="center", fontweight="bold")
+    else:
+        h = 2.2 * guards / maxv
+        ax.add_patch(Rectangle((x, 1.35), bw * 0.55, h, fc=ACCENT if byst == 0 else TINT, ec="none"))
+        ax.text(x + bw * 0.275, 1.35 + h + 0.06, f"{guards}", fontsize=10, color=INK, ha="center", va="bottom", fontweight="bold")
+        hb = 2.2 * byst / maxv
+        ax.add_patch(Rectangle((x + bw * 0.62, 1.35), bw * 0.38, max(hb, 0.02), fc=QUIET if byst else RULE, ec="none"))
+        ax.text(x + bw * 0.81, 1.35 + max(hb, 0.02) + 0.06, f"{byst}%", fontsize=8.5, color=QUIET, ha="center", va="bottom")
+    ax.text(x + bw / 2, 1.1, lab, fontsize=8.2, color=INK, ha="center", va="top", fontweight="bold")
+    ax.text(x + bw / 2, 0.55, note_, fontsize=7.6, color=QUIET, ha="center", va="top")
+ax.plot([x0 - 0.1, x0 + 5 * (bw + gap) - gap + 0.1], [1.35, 1.35], color=INK, lw=1)
+ax.text(x0 - 0.15, 3.65, "big bar: guards needed   small bar: share of bystander connections cut", fontsize=8.2, color=QUIET, ha="left")
+ax.text(x0 - 0.15, 3.9, "Model: a 60-node network with 6 separate roads to every point, 12 model copies, 10 devices, 40 bystanders", fontsize=8.2, color=QUIET, ha="left")
+save(fig, "fig_ks_cuts.png")
+
+# ---------------------------------------------------------------- 5. what a country's shutdown really is
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "“But Iran switched off the Internet.” Yes. Look at what that was.", "An edge cut on one region: every access link inside the border, nobody outside, everyone inside, and a hole for the people who own the switch.")
+pts = mesh(ax, 6.4, 2.1, 1.7, 1.1, n=16, seed=6)
+ax.text(6.4, 3.55, "the rest of the world: untouched", fontsize=8.4, color=QUIET, ha="center", fontweight="bold")
+# the region
+ax.add_patch(Rectangle((0.5, 0.6), 3.4, 3.0, fill=False, ec=INK, lw=1.3))
+ax.text(0.6, 3.7, "one country", fontsize=8.6, color=INK, fontweight="bold", va="bottom")
+rnd = random.Random(8)
+for i in range(12):
+    x = 0.8 + (i % 4) * 0.8 + rnd.uniform(-0.08, 0.08)
+    y = 1.0 + (i // 4) * 0.8 + rnd.uniform(-0.08, 0.08)
+    dot(ax, x, y, r=0.085, fc=GRAY_FILL, ec=QUIET)
+    # access link to the border, cut
+    line(ax, (x, y), (3.9, 2.1), color=RULE, lw=0.5)
+for yy in [1.4, 1.9, 2.4, 2.9]:
+    ax.plot([3.9, 4.7], [yy, 2.1 + (yy - 2.1) * 0.5], color=QUIET, lw=1.2)
+    dot(ax, 4.3, (yy + 2.1 + (yy - 2.1) * 0.5) / 2, r=0.1, fc=TINT, ec=TINT)
+ax.text(4.6, 3.35, "the guards:\nevery access link\nat the border", fontsize=7.8, color=TINT, ha="center", va="bottom")
+# the hole: the elite line
+ax.plot([3.4, 4.7], [0.8, 1.35], color=ACCENT, lw=2.0)
+dot(ax, 3.4, 0.8, r=0.1, fc=ACCENT_FILL, ec=ACCENT, lw=1.4)
+ax.text(0.5, 0.45, "the hole: the government and the elite keep their line", fontsize=7.8, color=ACCENT, ha="left", va="top")
+ax.text(0.5, 0.22, "(North Korea runs this way all the time)", fontsize=7.8, color=ACCENT, ha="left", va="top")
+ax.text(7.3, 0.45, "a cut with a hole is not a cut", fontsize=8.6, color=INK, ha="center", va="top", fontweight="bold")
+save(fig, "fig_ks_country.png")
+
+# ---------------------------------------------------------------- 6. the laptop and the motor
+W, H = 10, 3.4
+fig, ax = new_fig(W, H)
+title(ax, H, "Too little as well as too much: the laptop and the motor", "A model wired straight to the thing it drives never touches the network. Switch the network off and nothing happens here.")
+pts = mesh(ax, 2.6, 1.15, 1.3, 0.7, n=12, seed=3, color="#EBE9E0")
+ax.text(2.6, 2.05, "the network, switched off", fontsize=8.4, color=RULE, ha="center", fontweight="bold")
+box(ax, 5.3, 0.75, 1.5, 0.75, "a laptop", ["a model copy on it"], kind="plain", title_size=9, line_size=7.8, pad=0.1)
+box(ax, 8.0, 0.75, 1.5, 0.75, "a motor", ["the thing it drives"], kind="tint", title_size=9, line_size=7.8, pad=0.1)
+arrow(ax, (6.8, 1.12), (8.0, 1.12), color=INK, lw=1.8)
+ax.text(7.4, 1.25, "one cable", fontsize=8, color=INK, ha="center", va="bottom")
+ax.text(7.4, 0.45, "the only cut is the cable, or a gate in the motor's controller", fontsize=8.2, color=ACCENT, ha="center", va="top")
+save(fig, "fig_ks_local.png")
+
+# ---------------------------------------------------------------- 7. gate the exits
+W, H = 10, 6.0
+fig, ax = new_fig(W, H)
+title(ax, H, "So the switch goes at the ends, and it is a gate, not a switch", "A switch stops everything. A gate lets through what a signed rulebook allows, checks the ticket again in the device, and nothing else.")
+rnd = random.Random(5)
+pts = mesh(ax, 5.0, 2.3, 1.9, 1.15, n=18, seed=9)
+for i in range(6):
+    y = 0.9 + i * 0.55
+    dot(ax, 0.7, y, r=0.09, fc=GRAY_FILL, ec=QUIET)
+    box(ax, 1.3, y - 0.17, 0.55, 0.34, "gate", kind="main", title_size=7, pad=0.06)
+    line(ax, (0.7, y), (1.3, y), color=QUIET, lw=1.0)
+    for _ in range(3):
+        line(ax, (1.85, y), pts[rnd.randrange(len(pts))], color=RULE, lw=0.6)
+ax.text(1.3, 4.3, "the governor: a gate on the chip,\nwith the brake, reset and power behind it", fontsize=7.8, color=ACCENT, ha="center", va="bottom")
+for j, (lab, irrev) in enumerate([("money", True), ("release line", True), ("motor", True), ("draft email", False), ("weights", True)]):
+    y = 1.0 + j * 0.6
+    if irrev:
+        box(ax, 8.0, y - 0.17, 0.55, 0.34, "gate", kind="main", title_size=7, pad=0.06)
+        box(ax, 8.85, y - 0.19, 0.95, 0.4, lab, kind="tint", title_size=7.8, pad=0.07)
+    else:
+        box(ax, 8.0, y - 0.17, 0.55, 0.34, "log", kind="plain", title_size=7, pad=0.06)
+        box(ax, 8.85, y - 0.19, 0.95, 0.4, lab, kind="plain", title_size=7.8, pad=0.07)
+    line(ax, (8.55, y), (8.85, y), color=QUIET, lw=1.0)
+    for _ in range(3):
+        line(ax, (8.0, y), pts[rnd.randrange(len(pts))], color=RULE, lw=0.6)
+ax.text(8.6, 4.3, "the comparator: a gate in the device,\nonly where the deed cannot be undone", fontsize=7.8, color=ACCENT, ha="center", va="bottom")
+ax.text(5.0, 0.35, "the middle stays what it is: witnesses live here (classifiers, watchers, sandboxes), the lock does not", fontsize=8.2, color=QUIET, ha="center")
+ax.text(5.0, 4.7, "fewer devices than copies, and they do not multiply when someone uploads a weight file", fontsize=8.2, color=INK, ha="center", fontweight="bold")
+save(fig, "fig_ks_exits.png")
 print("done")
