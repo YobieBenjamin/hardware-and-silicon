@@ -137,6 +137,8 @@ all succeed, so the gate is not passing by refusing everything.
   3. [Part 3, the silicon design: the action side](blog/04-the-chip-that-says-no-3-the-silicon-design.md): the design this repo's first post promised, revised after a chip designer's review: the security contract, enforcement domains, what a chip can know, where the bits live, the authorization protocol, the gate, the endpoint comparator, the assumptions register.
   4. [Part 4, the compute side and the governor in the rack](blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md): the root of trust, confidential compute, the controller and its enforcement points, three kinds of provenance, how the layers interact, one request end to end, the Safety Governor (one per NVIDIA GPU, added through the rack's boards), the experiment program, what none of this solves.
 
+To check the whole program rather than read about it, start at [safety-governor/START-HERE.md](https://github.com/YobieBenjamin/safety-governor/blob/main/START-HERE.md): the theory, the logic, the proofs, the code that proves the code, and what is still open, with every command.
+
 The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor): the design, a functional model of a rack of governed GPUs, the hypothesis suite H0 to H16, the RTL for the hard-core blocks, and the plan to put it on silicon.
 
 All in [`blog/`](blog/) as Markdown and Word, with figures (CC BY-NC 4.0, see License below).

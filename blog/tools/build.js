@@ -33,7 +33,7 @@ const POSTS = [
 // ------------------------------------------------------------------ inline markdown
 function inline(text, base = {}) {
   const runs = [];
-  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  const re = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)<>]+)/g;   // a bare URL becomes a link too
   let last = 0, m;
   const push = (t, extra = {}) => { if (t) runs.push(new TextRun({ text: t, ...base, ...extra })); };
   while ((m = re.exec(text)) !== null) {
@@ -41,7 +41,11 @@ function inline(text, base = {}) {
     const tok = m[0];
     if (tok.startsWith("**")) push(tok.slice(2, -2), { bold: true });
     else if (tok.startsWith("`")) push(tok.slice(1, -1), { font: FONT_CODE, size: (base.size || 22) - 2 });
-    else if (tok.startsWith("[")) {
+    else if (tok.startsWith("http")) {
+      const url = tok.replace(/[.,;:]+$/, "");               // a trailing full stop or comma belongs to the sentence
+      runs.push(new ExternalHyperlink({ link: url, children: [new TextRun({ text: url, ...base, style: "Hyperlink" })] }));
+      if (url.length < tok.length) push(tok.slice(url.length));
+    } else if (tok.startsWith("[")) {
       const mm = /\[([^\]]+)\]\(([^)]+)\)/.exec(tok);
       runs.push(new ExternalHyperlink({
         link: mm[2],
