@@ -410,4 +410,86 @@ ax.text(xs[1] + bw / 2 + 0.08, (yb - 0.62 + yc + hc) / 2, "nothing acts on it", 
 arrow(ax, (6.55, yc + hc / 2), (6.75, yc + hc / 2), color=ACCENT, lw=1.2)
 note(ax, 0.62, "Scale is the point, not the problem: trillions of requests a day, and the chip only ever sees the few that would change the world and cannot be undone.")
 save(fig, "fig_bad_prompt.png")
+
+# ---------------------------------------------------------------- inside the chip
+W, H = 10, 10.9
+fig, ax = new_fig(W, H)
+title(ax, H, "Inside the chip that says no: what goes in, what is built in, what comes out",
+      "It cannot read. It compares a form against a rulebook, checks signatures, counts, and keeps time.")
+LX, LW = 0.3, 2.5           # inputs
+CX, CW = 3.1, 3.85          # the chip
+RX, RW = 7.25, 2.45         # outputs
+TOP = H - 1.45
+GAP = 0.1
+ax.text(LX + LW / 2, TOP + 0.08, "WHAT GOES IN", fontsize=9, fontweight="bold", color=QUIET, ha="center", va="bottom")
+ax.text(CX + CW / 2, TOP + 0.08, "THE CHIP", fontsize=9, fontweight="bold", color=ACCENT, ha="center", va="bottom")
+ax.text(RX + RW / 2, TOP + 0.08, "WHAT COMES OUT", fontsize=9, fontweight="bold", color=QUIET, ha="center", va="bottom")
+
+def stack(x, w, y_top, items, title_size=8.6, line_size=7.2, line_gap=0.235):
+    """Boxes stacked downward from y_top, each sized to its lines; returns [(y_center, kind)] and the final y."""
+    centers = []
+    y = y_top
+    for t, lines, k in items:
+        h = 0.62 + line_gap * len(lines)
+        y -= h
+        box(ax, x, y, w, h, t, lines, kind=k, title_size=title_size, line_size=line_size, pad=0.1)
+        centers.append((y + h / 2, k))
+        y -= GAP
+    return centers, y
+
+ins = [
+    ("The form", ["from the software around the model: action,", "to whom, how much, request id, workload", "token. Typed fields, no prose"], "main"),
+    ("Proof of what is running", ["GPU attestation report, host enclave report,", "publisher-signed model manifest, checked", "against reference values the authority signed"], "plain"),
+    ("Witness verdicts", ["observer (Sentry, obs-main); provenance", "registry (exact / tampered / unknown);", "each signed, fresh, about this request"], "plain"),
+    ("The rulebook", ["signed by k of n governance keys; edition", "only goes up; expires; limits, budgets, lanes,", "protected lists. Nobody types it on the box"], "tint"),
+    ("People, by signature", ["heartbeat from the authority; approvals that", "name the request; the protected-site list", "from a separate body"], "tint"),
+    ("Counters from the GPU", ["tokens, cycles, bytes per model, read on the", "management bus; read-only to the host"], "plain"),
+]
+outs = [
+    ("A ticket, signed", ["action, digest of the fields, which GPU,", "rulebook edition, reservation, expiry;", "the far end checks it itself, once"], "main"),
+    ("A hold", ["parked until a person with a key", "signs an approval naming this request"], "tint"),
+    ("A no, with a reason code", ["and a line in the log nobody rewrites"], "plain"),
+    ("A device-provenance record", ["this device, firmware, model, edition,", "output hash, odometer count; signed"], "plain"),
+    ("The levers", ["brake, reset, power per GPU slot;", "switch ports; DPU flows; the rack halt loop"], "tint"),
+    ("To the other governors", ["signed, numbered, edition-stamped:", "roster, heartbeat, budgets, checkpoints"], "plain"),
+]
+chip_items = [
+    ("Burned in at the factory (fuses, ROM)", ["unique device secret; hashes of the governance keys;", "anti-rollback counter; lifecycle state. Nobody changes", "these afterwards, including us"], "plain"),
+    ("Measured boot and keys", ["extend-only registers; the signing key is derived from", "the code that booted (change one byte, lose the key);", "an odometer that only counts up; true randomness"], "plain"),
+    ("The gate: ten questions in order; the first no wins", [
+        "1  is the form well formed?",
+        "2  is the asking GPU attested, token valid, edition current?",
+        "3  seen this request before? (replay store)",
+        "4  alarm raised, heartbeat dead, rulebook expired? then no",
+        "5  which rule? workload \u00d7 action, exact before wildcard;",
+        "    typed limits; lists (a protected site is a no)",
+        "6  which lane? automatic, needs a witness, needs a human",
+        "7  witnesses present, signed, fresh, about this request?",
+        "8  inside the rate window?",
+        "9  budget: reserve the amount against the limit",
+        "10 human lane: park a hold. Otherwise mint the ticket"], "main"),
+]
+in_c, in_bottom = stack(LX, LW, TOP, ins)
+out_c, out_bottom = stack(RX, RW, TOP, outs)
+# the chip container first (so inner boxes draw on top), sized to its content
+inner_x, inner_w = CX + 0.12, CW - 0.24
+h_total = sum(0.62 + 0.235 * len(l) for _, l, _ in chip_items) + GAP * len(chip_items)
+state_h = 0.62 + 0.235 * 4
+chip_bottom = TOP - 0.12 - h_total - state_h - 0.12
+box(ax, CX, chip_bottom, CW, TOP - chip_bottom, "", kind="main", title_size=1)
+_, y_after = stack(inner_x, inner_w, TOP - 0.12, chip_items)
+sw = (inner_w - 0.2) / 3
+for i, (t, l) in enumerate([
+        ("Ledger", ["budgets and", "reservations, rate", "windows, replays;", "survives power loss"]),
+        ("Log", ["hash chain;", "signed checkpoints;", "neighbours cross-", "link their heads"]),
+        ("Mailbox", ["the only way in", "from the host:", "signed, numbered", "commands only"])]):
+    box(ax, inner_x + i * (sw + 0.1), y_after - state_h, sw, state_h, t, l, kind="plain", title_size=8.2, line_size=6.9, pad=0.08)
+for yc, k in in_c:
+    arrow(ax, (LX + LW, yc), (CX, yc), color=TINT if k == "tint" else EDGE, lw=1.3)
+for yc, k in out_c:
+    arrow(ax, (CX + CW, yc), (RX, yc), color=ACCENT if k == "main" else (TINT if k == "tint" else EDGE), lw=1.3)
+yn = min(in_bottom, out_bottom, chip_bottom) - 0.25
+note(ax, yn, "What it cannot know: what the words mean, whether the rulebook is a good one, whether a witness is right.")
+note(ax, yn - 0.24, "Those are people problems, handled by signatures and by measurement, and the chip is built so that none of them can be solved by talking to it.")
+save(fig, "fig_chip_inside.png")
 print("done")
