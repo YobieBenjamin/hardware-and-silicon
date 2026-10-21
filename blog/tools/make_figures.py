@@ -712,4 +712,131 @@ ax.text(8.6, 4.3, "the comparator: a gate in the device,\nonly where the deed ca
 ax.text(5.0, 0.35, "the middle stays what it is: witnesses live here (classifiers, watchers, sandboxes), the lock does not", fontsize=8.2, color=QUIET, ha="center")
 ax.text(5.0, 4.7, "fewer devices than copies, and they do not multiply when someone uploads a weight file", fontsize=8.2, color=INK, ha="center", fontweight="bold")
 save(fig, "fig_ks_exits.png")
+
+# ---------------------------------------------------------------- 8. what a cut is
+W, H = 10, 4.6
+fig, ax = new_fig(W, H)
+title(ax, H, "What a cut is", "A cut is a set of dots you remove so that no road is left from any source to any target. Miss one road and it is not a cut.")
+def small_graph(ax, ox, removed, survivors):
+    # fixed little graph: sources s1 s2 on the left, targets t1 t2 on the right, five middle nodes
+    P = {"s1": (ox + 0.3, 2.6), "s2": (ox + 0.3, 1.2), "a": (ox + 1.3, 2.9), "b": (ox + 1.3, 1.9), "c": (ox + 1.3, 0.9),
+         "d": (ox + 2.4, 2.5), "e": (ox + 2.4, 1.3), "t1": (ox + 3.4, 2.6), "t2": (ox + 3.4, 1.2)}
+    E = [("s1", "a"), ("s1", "b"), ("s2", "b"), ("s2", "c"), ("a", "d"), ("b", "d"), ("b", "e"), ("c", "e"), ("d", "t1"), ("e", "t2"), ("d", "t2"), ("e", "t1")]
+    for u, v in E:
+        dead = u in removed or v in removed
+        hot = (u, v) in survivors or (v, u) in survivors
+        line(ax, P[u], P[v], color=(TINT if hot else (RULE if dead else QUIET)), lw=(2.4 if hot else 1.1), dashed=dead)
+    for n, (x, y) in P.items():
+        if n in removed:
+            ax.add_patch(Circle((x, y), 0.13, fc="white", ec=INK, lw=1.4, linestyle="--", zorder=3))
+            ax.plot([x - 0.09, x + 0.09], [y - 0.09, y + 0.09], color=INK, lw=1.4, zorder=4)
+            ax.plot([x - 0.09, x + 0.09], [y + 0.09, y - 0.09], color=INK, lw=1.4, zorder=4)
+        else:
+            fc = GRAY_FILL if n.startswith("s") else (TINT_FILL if n.startswith("t") else "white")
+            ec = QUIET if n.startswith("s") else (TINT if n.startswith("t") else EDGE)
+            dot(ax, x, y, r=0.13, fc=fc, ec=ec, lw=1.3)
+        if n.startswith(("s", "t")):
+            ax.text(x, y + 0.26, {"s1": "copy", "s2": "copy", "t1": "device", "t2": "device"}[n], fontsize=7.6, color=QUIET, ha="center")
+        else:
+            ax.text(x + 0.2, y + 0.16, n, fontsize=8, color=INK, ha="left", va="bottom", fontweight="bold")
+small_graph(ax, 0.5, removed={"d", "e"}, survivors=set())
+ax.text(2.2, 0.35, "remove d and e: no road left. This is a cut, of size two.", fontsize=8.4, color=INK, ha="center", fontweight="bold")
+ax.plot([5.0, 5.0], [0.3, 3.5], color=RULE, lw=1)
+small_graph(ax, 5.5, removed={"a", "e"}, survivors={("s1", "b"), ("b", "d"), ("d", "t1"), ("s2", "b"), ("d", "t2")})
+ax.text(7.2, 0.35, "remove a and e: a road survives through b and d. Not a cut.", fontsize=8.4, color=TINT, ha="center", fontweight="bold")
+save(fig, "fig_ks_cut_def.png")
+
+# ---------------------------------------------------------------- 9. Menger in general: k separate roads
+W, H = 10, 4.9
+fig, ax = new_fig(W, H)
+title(ax, H, "Menger's theorem in general: count the separate roads", "Four roads between A and B that share no dot. Three guards leave one open. The smallest cut equals the largest number of separate roads: four.")
+colors = [ACCENT, "#2E8B57", "#8E44AD", TINT]
+def roads(ax, ox, guards):
+    A, B = (ox + 0.3, 2.0), (ox + 4.1, 2.0)
+    box(ax, A[0] - 0.45, A[1] - 0.3, 0.9, 0.6, "A", kind="plain", title_size=9, pad=0.1)
+    box(ax, B[0] - 0.45, B[1] - 0.3, 0.9, 0.6, "B", kind="plain", title_size=9, pad=0.1)
+    for i, yy in enumerate([3.3, 2.45, 1.55, 0.7]):
+        pts_ = [(A[0] + 0.45, A[1]), (ox + 1.3, yy), (ox + 2.2, yy + (0.15 if i % 2 else -0.15)), (ox + 3.1, yy), (B[0] - 0.45, B[1])]
+        open_ = i not in guards
+        for p_, q_ in zip(pts_, pts_[1:]):
+            line(ax, p_, q_, color=colors[i] if open_ else RULE, lw=2.0 if open_ else 1.2)
+        for p_ in pts_[1:-1]:
+            dot(ax, *p_, r=0.09, fc="white", ec=colors[i] if open_ else EDGE, lw=1.3)
+        if i in guards:
+            dot(ax, ox + 2.2, yy + (0.15 if i % 2 else -0.15), r=0.14, fc=INK, ec=INK)
+roads(ax, 0.3, guards=set())
+ax.text(2.5, 0.25, "four separate roads, four colours, no shared dot", fontsize=8.4, color=INK, ha="center", fontweight="bold")
+ax.plot([5.0, 5.0], [0.2, 3.7], color=RULE, lw=1)
+roads(ax, 5.3, guards={0, 1, 3})
+ax.text(7.5, 0.25, "three guards (black): the green road is still open. You need four.", fontsize=8.4, color=TINT, ha="center", fontweight="bold")
+save(fig, "fig_ks_disjoint.png")
+
+# ---------------------------------------------------------------- 10. how much of the network you must destroy
+# From safety-governor/proofs/no_global_kill_switch.py --percolation (random removal of the 60-node core, 40 trials each)
+perc = [(0.0, 1.000, 1.000), (0.1, 1.000, 1.000), (0.2, 1.000, 1.000), (0.3, 0.997, 0.997), (0.4, 0.990, 0.991),
+        (0.5, 0.965, 0.985), (0.6, 0.905, 0.935), (0.7, 0.796, 0.792), (0.8, 0.549, 0.575), (0.9, 0.202, 0.210)]
+W, H = 10, 5.4
+fig, ax = new_fig(W, H)
+title(ax, H, "How much of the network you have to destroy before AI is cut off", "Remove a random share of the core and count what still connects. AI's roads and everyone else's fall together: they are the same roads.")
+x0, y0, pw, ph = 1.1, 0.95, 7.6, 3.0
+ax.plot([x0, x0 + pw], [y0, y0], color=INK, lw=1)
+ax.plot([x0, x0], [y0, y0 + ph], color=INK, lw=1)
+for i in range(0, 11, 2):
+    xx = x0 + pw * i / 10
+    ax.text(xx, y0 - 0.12, f"{i * 10}%", fontsize=7.8, color=QUIET, ha="center", va="top")
+    ax.plot([xx, xx], [y0, y0 + ph], color=RULE, lw=0.6)
+for j in range(0, 5):
+    yy = y0 + ph * j / 4
+    ax.text(x0 - 0.1, yy, f"{j * 25}%", fontsize=7.8, color=QUIET, ha="right", va="center")
+ax.text(x0 + pw / 2, y0 - 0.42, "share of the network's core destroyed, at random", fontsize=8.2, color=INK, ha="center", va="top")
+ax.text(x0 - 0.75, y0 + ph / 2, "roads\nstill\nopen", fontsize=8.2, color=INK, ha="center", va="center")
+xs_ = [x0 + pw * f for f, _, _ in perc]
+ax.plot(xs_, [y0 + ph * a for _, a, _ in perc], color=ACCENT, lw=2.4, zorder=3)
+ax.plot(xs_, [y0 + ph * b for _, _, b in perc], color=QUIET, lw=1.8, linestyle="--", zorder=3)
+ax.text(xs_[-1] + 0.08, y0 + ph * perc[-1][1] + 0.12, "AI copies to devices", fontsize=8, color=ACCENT, va="center")
+ax.text(xs_[-1] + 0.08, y0 + ph * perc[-1][2] - 0.14, "everyone else", fontsize=8, color=QUIET, va="center")
+# annotations
+ax.annotate("70% of the core gone:\nfour roads in five still open", xy=(xs_[7], y0 + ph * perc[7][1]), xytext=(xs_[4] - 0.2, y0 + ph * 0.45),
+            fontsize=8, color=INK, ha="center", arrowprops=dict(arrowstyle="-", color=EDGE, lw=0.9))
+ax.annotate("90% gone: one in five still open", xy=(xs_[9], y0 + ph * perc[9][1]), xytext=(xs_[7] - 0.3, y0 + ph * 0.12),
+            fontsize=8, color=INK, ha="center", arrowprops=dict(arrowstyle="-", color=EDGE, lw=0.9))
+ax.plot([x0 + pw * 0.72, x0 + pw * 0.72], [y0, y0 + ph * 0.3], color=TINT, lw=1.2, linestyle=":")
+ax.text(x0 + pw * 0.72, y0 + ph * 0.33, "the targeted edge cut from the chart before:\n72% of the core, chosen with the list of every machine", fontsize=7.6, color=TINT, ha="center", va="bottom")
+ax.text(x0, y0 + ph + 0.18, "Model: 60-node core, six separate roads to every point, 12 copies, 10 devices, 40 bystanders; 40 random trials per point", fontsize=7.8, color=QUIET, ha="left")
+save(fig, "fig_ks_percolation.png")
+
+# ---------------------------------------------------------------- 11. the smaller end
+W, H = 10, 5.4
+fig, ax = new_fig(W, H)
+title(ax, H, "Why the smallest cut is at the smaller end", "Each separate road needs its own source and its own target, so there are never more roads than the smaller side has dots.")
+rnd = random.Random(21)
+core = mesh(ax, 5.0, 2.2, 1.6, 1.15, n=16, seed=13)
+cols5 = [ACCENT, "#2E8B57", "#8E44AD", TINT, "#B8860B"]
+src_y = [0.75 + i * 0.3 for i in range(10)]
+for i, y in enumerate(src_y):
+    dot(ax, 1.0, y, r=0.085, fc=GRAY_FILL, ec=QUIET)
+tgt_y = [0.9 + j * 0.65 for j in range(5)]
+for j, y in enumerate(tgt_y):
+    dot(ax, 8.2, y, r=0.1, fc=ACCENT_FILL, ec=ACCENT, lw=1.4)
+    box(ax, 8.6, y - 0.19, 1.0, 0.4, ["money", "release line", "motor", "relay", "weights"][j], kind="tint", title_size=7.8, pad=0.07)
+    line(ax, (8.2, y), (8.6, y), color=QUIET, lw=1.0)
+# five coloured disjoint roads: distinct sources (every other one), distinct core nodes, distinct targets
+left = sorted([c for c in core if c[0] < 5.0], key=lambda c: c[1])    # left half of the ring, bottom to top
+right = sorted([c for c in core if c[0] >= 5.0], key=lambda c: c[1])  # right half, bottom to top
+for j in range(5):   # road j runs low to low, high to high, so the five never cross
+    sy = src_y[2 * j]
+    c1 = left[int(round(j * (len(left) - 1) / 4))]
+    c2 = right[int(round(j * (len(right) - 1) / 4))]
+    pts_ = [(1.0, sy), c1, c2, (8.2, tgt_y[j])]
+    for p_, q_ in zip(pts_, pts_[1:]):
+        line(ax, p_, q_, color=cols5[j], lw=2.2, z=2)
+    for c in (c1, c2):
+        dot(ax, *c, r=0.09, fc=cols5[j], ec=cols5[j])
+for i, y in enumerate(src_y):   # grey roads for the sources not on a coloured road
+    if i % 2:
+        line(ax, (1.0, y), core[rnd.randrange(len(core))], color=RULE, lw=0.6)
+ax.text(1.0, 3.95, "ten copies", fontsize=8.4, color=QUIET, ha="center", fontweight="bold")
+ax.text(8.9, 4.4, "five devices", fontsize=8.4, color=TINT, ha="center", fontweight="bold")
+ax.text(5.0, 0.3, "five separate roads is the most you can draw: each needs its own device. So five guards, one per device, and nothing smaller exists.", fontsize=8.2, color=INK, ha="center", fontweight="bold")
+save(fig, "fig_ks_smaller_end.png")
 print("done")

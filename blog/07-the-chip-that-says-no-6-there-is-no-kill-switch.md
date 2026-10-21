@@ -2,7 +2,7 @@
 
 By Yobie Benjamin · yobie AT ieee DOT org · linkedin.com/in/yobie · October 21, 2026 · Part 6: there is no kill switch
 
-> Every few weeks somebody important says the answer to AI safety is a kill switch. A big red button. If the AI misbehaves, we turn it off. I do not believe a word of it, and I am going to show you why with a few drawings and a piece of mathematics from 1927 that you can follow with a pencil. Then I am going to show you where a switch can actually go, because there is a place, and it is the whole reason I am building a chip.
+> Every few weeks somebody with a microphone says the answer to AI safety is a kill switch. A big red button. If the AI misbehaves, we turn it off. It is the Terminator's answer, and it is the answer you give when you have seen the movie and not the machine. I do not believe a word of it, and I am going to show you why with a dozen drawings and a piece of mathematics from 1927 that you can follow with a pencil. This is graph theory, which is the mathematics of dots and lines, and it is the right tool because the whole question is about where you can cut a network. Then I am going to show you where a switch can actually go, because there is a place, and it is the whole reason I am building a chip.
 
 ## The picture in your head
 
@@ -41,6 +41,34 @@ Let me draw the real situation as a map of roads and guard posts. Mathematicians
 On the left, the model copies, and the chip each one runs on. In the middle, the network. On the right, the devices that act, each with a controller that every command passes through, and the deed on the other side of it. Top and bottom, everyone else: the billions of people and services using the same network who have nothing to do with AI.
 
 A kill switch, in this picture, is a set of dots you remove so that no road is left from any copy to any device. The question is: where are the smallest sets, what do they cost, and who else do they take down?
+
+## The graph theory, in four pictures
+
+Four more pictures, because this is where the argument actually lives and I want you to be able to check it rather than take my word.
+
+**What a cut is.** Mathematicians call the thing a kill switch would have to be a *cut*: a set of dots you remove so that no road is left from any source to any target. The definition has teeth. Miss one road and it is not a cut.
+
+![What a cut is](figures/fig_ks_cut_def.png)
+
+On the left, remove d and e and nothing gets through: a cut of size two. On the right, remove a and e instead, and a road survives through b and d. Same graph, same number of dots removed, not a cut. Keep this in mind for the country example later: a switch with a hole in it is the right-hand picture.
+
+**Menger in general.** The roads-and-guards story was Menger's theorem for one map. Here it is for any map: find the largest number of roads between A and B that share no dot. That number is exactly the number of guards you need. Four separate roads, four guards. Put three and the fourth road is still open.
+
+![Menger's theorem in general: count the separate roads](figures/fig_ks_disjoint.png)
+
+Why this matters: it turns a question about cleverness ("surely someone could find a smart place for the switch") into a question about counting. The smallest cut is a number, the number is the count of separate roads, and a computer can calculate it for any network you can draw.
+
+**How much of the network you have to destroy.** Now apply that to a network built the way the Internet is built, with several separate roads to every point. I took the model network from the repository and removed random chunks of its core, ten percent at a time, and counted how many roads from model copies to devices were still open. And how many roads between ordinary people and ordinary services were still open.
+
+![How much of the network you have to destroy before AI is cut off](figures/fig_ks_percolation.png)
+
+Destroy 70 percent of the core and four roads in five are still open. Destroy 90 percent and one in five still is. The two lines sit on top of each other the whole way down, because AI's roads and everyone else's roads are the same roads. There is no setting of the network's dial that cuts off AI and leaves your bank open. The dotted line is the targeted edge cut from the chart below, the one that does separate AI: it removes 72 percent of the core and it can only be aimed by someone holding the list of every machine.
+
+**Why the smallest cut is at the smaller end.** Last picture, and it is the one that tells you where the gate goes. Count the separate roads from all the copies to all the devices at once. Every separate road has to start at its own copy and end at its own device. So you can never have more separate roads than the smaller side has dots. Ten copies and five devices: at most five roads. By Menger, at most five guards. And the five device controllers are exactly such a cut.
+
+![Why the smallest cut is at the smaller end](figures/fig_ks_smaller_end.png)
+
+In the real world the copies number in the hundreds of thousands and grow every week, and the devices whose deed cannot be undone are a much shorter, slower list. The smallest cut is at the devices. That is not a design preference. It is arithmetic.
 
 ## Where could the switch go?
 
@@ -116,11 +144,11 @@ Everything above was drawings. Here is the same thing as a proof, written so tha
 
 **The theorem we lean on.** Menger, 1927: the smallest number of dots you must remove to separate two places equals the largest number of separate roads between them. Ford and Fulkerson, 1956: a computer can calculate that number for any map.
 
-**Claim 1. No global kill switch exists.** Suppose one did: a set K of network dots whose removal leaves no road from any source to any target. By assumption 3 there is a source and a target joined by a road with no network dots on it. Removing K removes nothing on that road, so that road survives, so there is still a road from a source to a target, so K is not a kill switch. Contradiction. There is no global kill switch. (Notice that this step did not even need the Internet's redundancy. One laptop and one motor are enough to sink the idea.)
+**Claim 1. No global kill switch exists.** This is the right-hand half of the "what a cut is" picture, with the laptop as the surviving road. Suppose a global switch did exist: a set K of network dots whose removal leaves no road from any source to any target. By assumption 3 there is a source and a target joined by a road with no network dots on it. Removing K removes nothing on that road, so that road survives, so there is still a road from a source to a target, so K is not a kill switch. Contradiction. There is no global kill switch. (Notice that this step did not even need the Internet's redundancy. One laptop and one motor are enough to sink the idea.)
 
 **Claim 2. Even ignoring local loops, a network switch is at least k dots per machine and takes the network with it.** Throw assumption 3 away for a moment and allow only the sources and targets that use the network. Take any one source and any one target. By assumption 2 there are k separate roads between their ways into the network; by Menger, any set of network dots that separates them has at least k dots. So a network switch costs at least k dots for every machine it cuts off, which means it needs the list of machines, which assumption 1 says nobody has. And because those dots are network dots, every bystander whose roads ran through them loses them too. The measured version is the 43-dot cut in the chart: 72 percent of the core gone, 19 percent of bystanders cut off.
 
-**Claim 3. Every complete kill switch is at least one dot per machine at the smaller end, and the ends achieve it.** Now put all the assumptions back and ask what the smallest kill switch of any kind is, anywhere in the graph. Count the separate roads from the set of all sources to the set of all targets. Each separate road starts at a different source and ends at a different target, so there cannot be more separate roads than there are sources, nor more than there are targets. With a network built as in assumption 2, there are exactly that many: the smaller of the two counts. By Menger, the smallest kill switch has exactly that many dots. The compute nodes are a kill switch of size one per source, the controllers are a kill switch of size one per target, so the smaller end is a smallest possible kill switch, and nothing smaller exists. Every kill switch, wherever you put it, is at least one dot per machine.
+**Claim 3. Every complete kill switch is at least one dot per machine at the smaller end, and the ends achieve it.** This is the "smaller end" picture above, as a proof. Put all the assumptions back and ask what the smallest kill switch of any kind is, anywhere in the graph. Count the separate roads from the set of all sources to the set of all targets. Each separate road starts at a different source and ends at a different target, so there cannot be more separate roads than there are sources, nor more than there are targets. With a network built as in assumption 2, there are exactly that many: the smaller of the two counts. By Menger, the smallest kill switch has exactly that many dots. The compute nodes are a kill switch of size one per source, the controllers are a kill switch of size one per target, so the smaller end is a smallest possible kill switch, and nothing smaller exists. Every kill switch, wherever you put it, is at least one dot per machine.
 
 **What the three claims add up to.** There is no switch. There is no set of dots in the network that stops AI, because of the laptop and the motor (Claim 1); and even for the machines that do use the network, a network cut costs k dots per machine, needs the list nobody has, and takes everyone else down (Claim 2); and the smallest cut of any kind is one dot per machine at the smaller end (Claim 3). A thing that is at least one guard per machine is not a switch. It is a gate on each machine. Since the targets are the smaller and better-known end, the gates go in the devices that act, with a second gate on the chips wherever that can be had.
 
@@ -132,13 +160,13 @@ The code that computes these cuts on a model graph, and checks itself against br
 
 ## The sentence
 
-Next time someone says kill switch, here is the sentence. There is no button, because the capability is in a thousand places and the network between them and the world has no middle to cut. The only places a cut is small and complete are the chip that runs the model and the device that does the deed. We can build gates there. We are building them. Everything else is a classifier with a press release.
+The kill switch is a politician's answer and a screenwriter's answer. It is what you reach for when the problem in your head is a single machine in a single room and you have not looked at the thing in the world, which is a thousand copies on a network built with no middle. I do not blame people for the picture; it is a good movie. I blame the people who should know better for repeating it. Next time someone says kill switch, here is the sentence. There is no button, because the capability is in a thousand places and the network between them and the world has no middle to cut. The only places a cut is small and complete are the chip that runs the model and the device that does the deed. We can build gates there. We are building them. Everything else is a classifier with a press release.
 
 ## Sources
 
 Everything claimed above is public. The addresses are written out so they survive a copy and paste.
 
-- The argument with the mathematics spelled out, and the part of the popular kill-switch argument that is wrong, is docs/23-there-is-no-kill-switch.md in the chip's repository, https://github.com/YobieBenjamin/safety-governor (the safety-governor repository). The graph model and the minimum cuts, computed by max-flow and cross-checked by brute force, are proofs/no_global_kill_switch.py in the same repository; `make proof` runs it with the other two proofs.
+- The argument with the mathematics spelled out, and the part of the popular kill-switch argument that is wrong, is docs/23-there-is-no-kill-switch.md in the chip's repository, https://github.com/YobieBenjamin/safety-governor (the safety-governor repository). The graph model and the minimum cuts, computed by max-flow and cross-checked by brute force, are proofs/no_global_kill_switch.py in the same repository; `make proof` runs it with the other two proofs, and `python3 proofs/no_global_kill_switch.py --percolation` prints the table behind the "how much of the network" chart.
 - Menger's theorem: Karl Menger, *Zur allgemeinen Kurventheorie*, Fundamenta Mathematicae 10, 1927. The max-flow min-cut theorem that turns it into arithmetic: L. R. Ford and D. R. Fulkerson, *Maximal Flow Through a Network*, Canadian Journal of Mathematics, 1956, and, independently, Elias, Feinstein and Shannon the same year.
 - The network with no middle: Paul Baran, *On Distributed Communications*, RAND Corporation, 1964.
 - The reference monitor: James P. Anderson, *Computer Security Technology Planning Study*, 1972.
