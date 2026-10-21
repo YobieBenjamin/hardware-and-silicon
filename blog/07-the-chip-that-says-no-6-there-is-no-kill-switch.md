@@ -102,6 +102,34 @@ A gate only covers the doors you put it on. A device nobody wired through a gate
 
 And a person is a door no chip gates. A model that talks a human into wiring the money has walked around every cut on every drawing in this post. The log will show that no ticket was ever issued for it, and the watchers can flag the attempt. That is all the hardware can do, and I am not going to pretend otherwise.
 
+## The proof, for those who want it
+
+Everything above was drawings. Here is the same thing as a proof, written so that anyone who remembers what a proof looks like can check each step. A proof is only as good as what it assumes, so the assumptions come first and they are the three facts about AI on the Internet this whole post rests on.
+
+**The setup.** Draw the dots and lines. Call the model copies the *sources*. Each source runs on one chip, its *compute node*, and every byte it sends out passes through that node. Call the devices that act the *targets*. Each target has one *controller*, and every command to it passes through that controller. Everything between the compute nodes and the controllers is the *network*. A *kill switch* is a set of dots you remove so that no road is left from any source to any target. A *global* kill switch is one that sits in the network, so that it works without anyone having to visit the machines.
+
+**Assumption 1, replication.** There are many sources, nobody has the full list, and the list grows whenever someone copies a model. This is a fact about AI in 2026, not a guess.
+
+**Assumption 2, no middle.** Between any source's way into the network and any target's way into the network there are at least k separate roads, roads that share no dot, for some k of at least two. This is Baran's design and it is how the Internet is built. In the core, k is large.
+
+**Assumption 3, local loops.** At least one source is joined to at least one target by a road that never enters the network at all. The laptop and the motor.
+
+**The theorem we lean on.** Menger, 1927: the smallest number of dots you must remove to separate two places equals the largest number of separate roads between them. Ford and Fulkerson, 1956: a computer can calculate that number for any map.
+
+**Claim 1. No global kill switch exists.** Suppose one did: a set K of network dots whose removal leaves no road from any source to any target. By assumption 3 there is a source and a target joined by a road with no network dots on it. Removing K removes nothing on that road, so that road survives, so there is still a road from a source to a target, so K is not a kill switch. Contradiction. There is no global kill switch. (Notice that this step did not even need the Internet's redundancy. One laptop and one motor are enough to sink the idea.)
+
+**Claim 2. Even ignoring local loops, a network switch is at least k dots per machine and takes the network with it.** Throw assumption 3 away for a moment and allow only the sources and targets that use the network. Take any one source and any one target. By assumption 2 there are k separate roads between their ways into the network; by Menger, any set of network dots that separates them has at least k dots. So a network switch costs at least k dots for every machine it cuts off, which means it needs the list of machines, which assumption 1 says nobody has. And because those dots are network dots, every bystander whose roads ran through them loses them too. The measured version is the 43-dot cut in the chart: 72 percent of the core gone, 19 percent of bystanders cut off.
+
+**Claim 3. Every complete kill switch is at least one dot per machine at the smaller end, and the ends achieve it.** Now put all the assumptions back and ask what the smallest kill switch of any kind is, anywhere in the graph. Count the separate roads from the set of all sources to the set of all targets. Each separate road starts at a different source and ends at a different target, so there cannot be more separate roads than there are sources, nor more than there are targets. With a network built as in assumption 2, there are exactly that many: the smaller of the two counts. By Menger, the smallest kill switch has exactly that many dots. The compute nodes are a kill switch of size one per source, the controllers are a kill switch of size one per target, so the smaller end is a smallest possible kill switch, and nothing smaller exists. Every kill switch, wherever you put it, is at least one dot per machine.
+
+**What the three claims add up to.** There is no switch. There is no set of dots in the network that stops AI, because of the laptop and the motor (Claim 1); and even for the machines that do use the network, a network cut costs k dots per machine, needs the list nobody has, and takes everyone else down (Claim 2); and the smallest cut of any kind is one dot per machine at the smaller end (Claim 3). A thing that is at least one guard per machine is not a switch. It is a gate on each machine. Since the targets are the smaller and better-known end, the gates go in the devices that act, with a second gate on the chips wherever that can be had.
+
+**Why "because AI runs on the Internet" is the right one-line reason.** Assumption 2 is the Internet. If AI ran on one machine with one wire, Claim 1 would fail and the button in the movie would work. It runs on a network designed to have no middle, so every road into the middle has k siblings, and the only places where a single guard covers a single road are the two ends. The Internet did not make AI unsafe. It made the kill switch impossible and told us where the gates go.
+
+**What the proof does not say.** It does not say the gates are in place; that is coverage, and it is work. It does not say a gate is a good gate; that is the rulebook, and it is people. It does not stop a model from talking a person into doing the deed; a person is not a dot in this graph. And it depends on its three assumptions. Anyone who can show me a single network dot that every AI on Earth depends on, including the laptop in the basement, has broken assumption 3 and I will take the post down. Nobody can, because there is no such dot. That is the point.
+
+The code that computes these cuts on a model graph, and checks itself against brute force on a small one, is `proofs/no_global_kill_switch.py` in the chip's repository. It runs in a second.
+
 ## The sentence
 
 Next time someone says kill switch, here is the sentence. There is no button, because the capability is in a thousand places and the network between them and the world has no middle to cut. The only places a cut is small and complete are the chip that runs the model and the device that does the deed. We can build gates there. We are building them. Everything else is a classifier with a press release.
