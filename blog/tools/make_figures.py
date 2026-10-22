@@ -839,4 +839,260 @@ ax.text(1.0, 3.95, "ten copies", fontsize=8.4, color=QUIET, ha="center", fontwei
 ax.text(8.9, 4.4, "five devices", fontsize=8.4, color=TINT, ha="center", fontweight="bold")
 ax.text(5.0, 0.3, "five separate roads is the most you can draw: each needs its own device. So five guards, one per device, and nothing smaller exists.", fontsize=8.2, color=INK, ha="center", fontweight="bold")
 save(fig, "fig_ks_smaller_end.png")
+
+# ================================================================ Part 7: scaling no
+# Ten figures for "Scaling No... Yes, We Can": one slot, one tray, one rack, one hall, many sites,
+# and the four mechanisms that make a thousand governors behave as one system. Facts from
+# safety-governor docs/01, 02, 03, 04 and 11; analogies in coral, as in the post.
+import textwrap as _tw
+import math as _m
+
+def tag(ax, x, y, text, size=7.8, color=TINT, width=150):
+    for k, ln in enumerate(_tw.wrap(text, width)):
+        ax.text(x, y - 0.2 * k, ln, fontsize=size, color=color, ha="left", va="top", style="italic")
+
+def chip(ax, x, y, w=0.42, h=0.3, label="gov", fc=ACCENT_FILL, ec=ACCENT, size=6.4, lw=1.3):
+    pch = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=0.05", ec=ec, fc=fc, lw=lw, zorder=4)
+    ax.add_patch(pch)
+    ax.text(x + w / 2, y + h / 2, label, fontsize=size, color=INK, ha="center", va="center", fontweight="bold", zorder=5)
+
+def gpu(ax, x, y, w=0.5, h=0.34, label="GPU", fc="white", ec=EDGE, size=6.6):
+    pch = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=0.05", ec=ec, fc=fc, lw=1.1, zorder=4)
+    ax.add_patch(pch)
+    ax.text(x + w / 2, y + h / 2, label, fontsize=size, color=QUIET, ha="center", va="center", zorder=5)
+
+# ---------------------------------------------------------------- 12. the five levels
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "From one slot to the planet: five levels, one chip's job at each", "What grows is the count. What the chip does never changes.")
+levels = [
+    ("1 per GPU slot", ["the levers: brake, reset, power", "the counters, the attestation", "the five crossings"], "a smoke detector and a breaker in every room"),
+    ("8 per tray", ["NVLink switch ports open only", "between roster members", "the DPU egress holds responses"], "a hotel key card: your door, nobody else's"),
+    ("72 per rack", ["two wires through every governor:", "the halt loop (317 us, fail-safe)", "the signed message fabric"], "the fire-alarm loop and the intercom"),
+    ("thousands per hall", ["rosters per job", "one rulebook edition at a time", "heartbeat from a key, not a box", "one owner per budget, linked logs"], "badges, one rulebook, the watchman's clock, one cashier per drawer"),
+    ("many sites", ["a loop per site, never across", "the key has no address", "the ticket is checked", "by the device at the far end"], "the stamp travels; the wire does not; the passport is checked at the border"),
+]
+bw, gap, y0, bh = 1.78, 0.14, 2.2, 1.75
+for i, (head, lines, ana) in enumerate(levels):
+    x = 0.3 + i * (bw + gap)
+    box(ax, x, y0, bw, bh, head, lines, kind="main" if i in (0, 2) else "plain", title_size=9.2, line_size=7.2)
+    for k, ln in enumerate(_tw.wrap(ana, 30)):
+        ax.text(x + 0.05, y0 - 0.14 - 0.19 * k, ln, fontsize=7.2, color=TINT, ha="left", va="top", style="italic")
+    if i < 4:
+        arrow(ax, (x + bw + 0.01, y0 + bh / 2), (x + bw + gap - 0.01, y0 + bh / 2), color=EDGE, lw=1.4)
+note(ax, 1.05, "Nothing central sits in the data path at any level. Each chip decides for its own GPU; the wires and the signed messages carry only")
+note(ax, 0.83, "who is on duty, which rulebook is in force, and stop.")
+note(ax, 0.4, "Sources: safety-governor docs/01 (tiers), docs/02 (the fabric), docs/11 (the loop), docs/23 (why the ends)")
+save(fig, "fig_sc_levels.png")
+
+# ---------------------------------------------------------------- 13. one slot
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "One slot: what the add-on chip touches, and what it never touches", "It sits on the server maker's management card and reaches the GPU slot through the connector the board already has.")
+gpu(ax, 0.5, 2.2, 1.7, 1.2, "the GPU\n(unchanged;\nCUDA unchanged)", size=8.0)
+box(ax, 3.1, 1.45, 3.4, 2.55, "the governor, one per slot", ["reads: counters (tokens, cycles, bytes) over SMBus,", "   the attestation report, the host's measurements", "holds: the rulebook (signed k of n), the ledger,", "   the hash-chained log, the device secret in fuses", "drives: power brake, PERST#, PWR_EN for this slot,", "   the switch ports and DPU flows it is allowed", "answers: a ticket, a hold, or a no with a reason code"], kind="main", title_size=9.4, line_size=7.4)
+arrow(ax, (2.2, 3.25), (3.1, 3.25), color=EDGE, lw=1.2); ax.text(2.65, 3.33, "counters, attestation", fontsize=6.6, color=QUIET, ha="center", va="bottom")
+arrow(ax, (3.1, 2.4), (2.2, 2.4), color=TINT, lw=1.6); ax.text(2.65, 2.3, "brake, reset, power", fontsize=6.6, color=TINT, ha="center", va="top")
+box(ax, 7.3, 2.6, 2.4, 1.4, "the device that acts", ["payment switch, release line,", "motor, storage, message gateway;", "checks the ticket itself, once"], kind="tint", title_size=8.6, line_size=7.0)
+arrow(ax, (6.5, 3.3), (7.3, 3.3), color=ACCENT, lw=1.6); ax.text(6.9, 3.38, "ticket", fontsize=6.8, color=ACCENT, ha="center", va="bottom")
+box(ax, 7.3, 1.45, 2.4, 0.95, "never touched", ["the model's tokens, the weights' meaning,", "the NVLink data path, the training loop"], kind="plain", title_size=8.4, line_size=7.0)
+tag(ax, 0.3, 1.1, "The picture: a circuit breaker and a customs officer in one small box, one per room. The breaker cannot read the mail. It can cut the power, and it can refuse to stamp the form.")
+note(ax, 0.4, "Sources: docs/01 (where the governor lives), docs/03 (the plugs), docs/04 §5 (the ticket); the retrofit case is experiment P2")
+save(fig, "fig_sc_slot.png")
+
+# ---------------------------------------------------------------- 14. one tray
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "One tray: eight GPUs, eight governors, and switch ports that open only for the roster", "The governor is not in the NVLink data path. It holds the switch's management keys out of band.")
+cx, cy = 3.9, 2.6
+for k in range(8):
+    a = _m.pi * 2 * k / 8 + _m.pi / 8
+    gx, gy = cx + 2.5 * _m.cos(a), cy + 1.25 * _m.sin(a)
+    dead = (k == 5)
+    line(ax, (gx, gy), (cx, cy), color=RULE if dead else ACCENT, lw=0.9 if dead else 1.5, dashed=dead)
+    gpu(ax, gx - 0.3, gy - 0.17, 0.6, 0.34, "GPU %d" % k, fc=GRAY_FILL if dead else "white", ec=RULE if dead else EDGE)
+    chip(ax, gx + 0.33, gy - 0.1, 0.34, 0.22, "g", size=5.6, fc=TINT_FILL if dead else ACCENT_FILL, ec=TINT if dead else ACCENT)
+sw = FancyBboxPatch((cx - 0.95, cy - 0.42), 1.9, 0.84, boxstyle="round,pad=0,rounding_size=0.12", ec=EDGE, fc="white", lw=1.2, zorder=4)
+ax.add_patch(sw)
+ax.text(cx - 0.8, cy + 0.26, "NVSwitch × N", fontsize=8.4, fontweight="bold", color=INK, va="top", zorder=5)
+ax.text(cx - 0.8, cy - 0.02, "port enable, partitions:", fontsize=6.8, color=QUIET, va="top", zorder=5)
+ax.text(cx - 0.8, cy - 0.22, "governor-signed only", fontsize=6.8, color=QUIET, va="top", zorder=5)
+g5x, g5y = cx + 2.5 * _m.cos(_m.pi * 2 * 5 / 8 + _m.pi / 8), cy + 1.25 * _m.sin(_m.pi * 2 * 5 / 8 + _m.pi / 8)
+ax.text(g5x - 0.75, g5y, "failed attestation: no quote,\nnot on the roster, ports shut", fontsize=6.4, color=TINT, ha="right", va="center")
+box(ax, 7.4, 2.75, 2.3, 1.25, "the DPU at the edge", ["flows open only under a ticket;", "the egress holds a response", "until a ticket releases it"], kind="main", title_size=8.4, line_size=6.8)
+arrow(ax, (6.65, 2.6), (7.4, 3.1), color=ACCENT, lw=1.3)
+box(ax, 7.4, 1.4, 2.3, 1.1, "the tray's BMC", ["still manages the board;", "it reads through the governor"], kind="plain", title_size=8.4, line_size=6.8)
+tag(ax, 0.3, 1.1, "The picture: a hotel key card. Your card opens your door and the gym, for the nights you booked, and nothing else. A card that was never issued opens nothing, however hard you push.")
+note(ax, 0.4, "Sources: docs/02 (roster formation), docs/03 (NVSwitch management out of band through NSM, DOCA on the DPU), test H2")
+save(fig, "fig_sc_tray.png")
+
+# ---------------------------------------------------------------- 15. the two wires through a rack
+W, H = 10, 5.8
+fig, ax = new_fig(W, H)
+title(ax, H, "One rack: two wires through every governor, separate from every network", "The halt loop is dumb and fast. The message fabric is smart and signed. Both fail safe.")
+trays = 9
+ty0, th, tgap = 1.45, 0.3, 0.06
+for t in range(trays):
+    y = ty0 + t * (th + tgap)
+    ax.add_patch(FancyBboxPatch((1.2, y), 3.6, th, boxstyle="round,pad=0,rounding_size=0.04", ec=EDGE, fc="white", lw=1.0))
+    ax.text(1.28, y + 0.02, "tray %d" % (trays - t), fontsize=5.4, color=QUIET, va="bottom")
+    for k in range(8):
+        chip(ax, 2.0 + k * 0.34, y + 0.08, 0.28, 0.18, "", size=5)
+pts = []
+for t in range(trays):
+    y = ty0 + t * (th + tgap) + 0.17
+    pts += [(1.95, y), (4.75, y)] if t % 2 == 0 else [(4.75, y), (1.95, y)]
+for p_, q_ in zip(pts, pts[1:]):
+    ax.plot([p_[0], q_[0]], [p_[1], q_[1]], color=TINT, lw=1.8, zorder=6)
+ax.plot([pts[-1][0], 1.0, 1.0, 1.95], [pts[-1][1], pts[-1][1], pts[0][1], pts[0][1]], color=TINT, lw=1.8, zorder=6)
+chip(ax, 0.3, ty0 - 0.05, 0.62, 0.4, "super-\nvisor", size=5.6, fc=TINT_FILL, ec=TINT)
+cy_ = ty0 + 4 * (th + tgap) + 0.17
+ax.plot([4.9, 5.1], [cy_ - 0.1, cy_ + 0.1], color=INK, lw=2.2, zorder=7); ax.plot([4.9, 5.1], [cy_ + 0.1, cy_ - 0.1], color=INK, lw=2.2, zorder=7)
+ax.text(5.2, cy_, "a cut here", fontsize=6.6, color=INK, ha="left", va="center", fontweight="bold")
+rx = 5.75
+top_y = ty0 + (trays - 1) * (th + tgap) + 0.17
+for t in range(trays):
+    y = ty0 + t * (th + tgap) + 0.17
+    ax.plot([4.8, rx], [y, y], color=ACCENT, lw=0.9, zorder=2)
+ax.plot([rx, rx], [ty0 + 0.17, top_y], color=ACCENT, lw=1.6)
+ax.plot([rx + 0.08, rx + 0.08], [ty0 + 0.17, top_y], color=ACCENT, lw=1.6, linestyle=":")
+ax.text(1.2, 4.9, "the loop (coral): one twisted pair, tray to tray and back to the supervisor", fontsize=6.6, color=TINT, va="top", ha="left")
+ax.text(1.2, 4.76, "the fabric (blue): ring A and ring B, 100BASE-T1 or SGMII on their own pairs", fontsize=6.6, color=ACCENT, va="top", ha="left")
+box(ax, 6.2, 3.05, 3.5, 1.85, "the halt loop (the coral wire)", ["a series current loop with a live-zero current:", "a dead wire reads as zero, and zero means stop;", "a cut, a pulled board, a dead governor read as open", "any governor opens it; every slot halts within two", "sense periods: 317 us worst case for 72 governors", "closed again only by a signed CLEAR at every one"], kind="tint", title_size=8.6, line_size=6.8)
+box(ax, 6.2, 1.25, 3.5, 1.65, "the fabric (the blue wire)", ["every note signed with a fused key, numbered,", "stamped with the rulebook edition; an old note,", "a stranger's note, or last year's edition: binned", "it carries quotes, rosters, heartbeats, budgets,", "alarms, checkpoint heads: kilobytes per second"], kind="main", title_size=8.6, line_size=6.8)
+tag(ax, 0.3, 1.0, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled, and rings them if the wire is cut. The intercom carries who pulled it and which rulebook is in force.")
+note(ax, 0.38, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests H11 and H12")
+save(fig, "fig_sc_wires.png")
+
+# ---------------------------------------------------------------- 16. rosters
+W, H = 10, 4.6
+fig, ax = new_fig(W, H)
+title(ax, H, "A roster per job: the untrusted scheduler asks, the governors decide who is on the bus", "Every later decision names the roster id: switch ports, DPU flows, shared budgets, output records.")
+steps_ = [("1  the scheduler names GPUs", ["software, untrusted; it asks,", "it does not decide"], "plain"),
+          ("2  each governor sends a quote", ["an attestation quote over a nonce", "from the job id and its counter"], "main"),
+          ("3  the lowest chip id signs it", ["members verify the leader's signature", "and every quote inside it themselves"], "main"),
+          ("4  the roster scopes everything", ["ports, flows, budgets and records", "name it; it expires with the job"], "main")]
+for i, (h_, ls_, k_) in enumerate(steps_):
+    x = 0.3 + i * 2.42
+    box(ax, x, 2.25, 2.25, 1.4, h_, ls_, kind=k_, title_size=8.2, line_size=7.0)
+    if i < 3: arrow(ax, (x + 2.26, 2.95), (x + 2.41, 2.95), color=EDGE, lw=1.3)
+box(ax, 0.3, 1.15, 4.6, 0.95, "a GPU that fails attestation", ["cannot produce a valid quote, so it is simply absent from the roster;", "nothing it says afterwards is accepted, and its presence is logged"], kind="tint", title_size=8.2, line_size=7.0)
+box(ax, 5.1, 1.15, 4.6, 0.95, "a forged roster", ["dropped and logged: members check the leader's signature and the", "quotes, they do not take the leader's word; the roster survives a power cycle"], kind="plain", title_size=8.2, line_size=7.0)
+tag(ax, 0.3, 0.85, "The picture: no badge, no seat on the bus, and nobody listens to you shouting from the parking lot.")
+note(ax, 0.4, "Sources: docs/02 (roster formation); govsim/cluster.py; test H12 (fabric authentication)")
+save(fig, "fig_sc_roster.png")
+
+# ---------------------------------------------------------------- 17. the edition change, cluster-atomic
+W, H = 10, 5.2
+fig, ax = new_fig(W, H)
+title(ax, H, "One rulebook at a time: a new edition reaches a thousand governors without a gap", "The edition moves in two phases and the heartbeat enforces the result, so no ticket minted under new rules meets a device on the old ones.")
+tl_y = 3.3
+ax.plot([0.6, 9.6], [tl_y, tl_y], color=EDGE, lw=1.2)
+for x_, lab in [(1.2, "PROPOSE\nthe signed image"), (3.6, "each governor verifies the\nk of n itself, stages it,\nacknowledges"), (5.8, "COMMIT\nto those who acknowledged"), (8.4, "the heartbeat now\ncarries the new edition")]:
+    dot(ax, x_, tl_y, r=0.09, fc=ACCENT, ec=ACCENT)
+    ax.text(x_, tl_y + 0.16, lab, fontsize=7.0, color=INK, ha="center", va="bottom")
+rows_ = [("governor A: staged and committed", "runs on the new edition; old tickets, capabilities and messages die at the commit", ACCENT, ACCENT_FILL),
+         ("governor B: staged, missed the commit", "accepts the new-edition heartbeat for 10 s, then refuses it and halts as EPOCH_STRAGGLER", TINT, TINT_FILL),
+         ("governor C: never staged it", "cannot accept the new-edition heartbeat at all; its timer expires; it halts as HEARTBEAT_LOST", TINT, TINT_FILL)]
+for i, (h_, b_, ec_, fc_) in enumerate(rows_):
+    y = 2.7 - i * 0.68
+    ax.add_patch(FancyBboxPatch((0.6, y - 0.26), 9.0, 0.56, boxstyle="round,pad=0,rounding_size=0.06", ec=ec_, fc=fc_, lw=1.2))
+    ax.text(0.75, y + 0.13, h_, fontsize=8.0, color=INK, fontweight="bold", va="center")
+    ax.text(0.75, y - 0.1, b_, fontsize=7.2, color=QUIET, va="center")
+tag(ax, 0.3, 0.95, "The picture: the new edition of the rulebook is handed out, everyone initials receipt, and the manager says \"from now\" to those who did. Anyone who did not initial, or initialled and then missed the word, is sent home, not left working from the old book.")
+note(ax, 0.38, "Sources: docs/02 (epoch change, cluster-atomic; fabric.epoch_deadline_s = 10 s); proofs/core_invariants.py P4, P8, P9; tests H3 and H12")
+save(fig, "fig_sc_edition.png")
+
+# ---------------------------------------------------------------- 18. the heartbeat and a partition
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "The heartbeat: a key, not a box, and what happens when the network splits", "The authority signs a heartbeat with a validity window; it enters anywhere and is relayed hop by hop. No heartbeat, no running.")
+box(ax, 0.3, 3.0, 1.9, 0.95, "the authority", ["a key with a quorum", "behind it; no address,", "no rack, no box"], kind="tint", title_size=8.4, line_size=6.8)
+seg1 = [(3.0, 3.45), (4.0, 3.45), (5.0, 3.45), (6.0, 3.45)]
+seg2 = [(7.4, 3.45), (8.4, 3.45), (9.4, 3.45)]
+arrow(ax, (2.2, 3.45), (2.78, 3.45), color=TINT, lw=1.6)
+for i, (x_, y_) in enumerate(seg1):
+    chip(ax, x_ - 0.22, y_ - 0.15, 0.44, 0.3, "g%d" % (i + 1), size=6.2)
+    if i < len(seg1) - 1: arrow(ax, (x_ + 0.24, y_), (seg1[i + 1][0] - 0.24, y_), color=ACCENT, lw=1.3)
+for i, (x_, y_) in enumerate(seg2):
+    chip(ax, x_ - 0.22, y_ - 0.15, 0.44, 0.3, "g%d" % (i + 5), size=6.2, fc=GRAY_FILL, ec=RULE)
+    if i < len(seg2) - 1: line(ax, (x_ + 0.24, y_), (seg2[i + 1][0] - 0.24, y_), color=RULE, lw=1.0, dashed=True)
+ax.plot([6.68, 6.72], [3.1, 3.8], color=INK, lw=2.4); ax.plot([6.72, 6.68], [3.1, 3.8], color=INK, lw=2.4)
+ax.text(6.7, 3.88, "the fabric is cut here", fontsize=7.0, color=INK, ha="center", va="bottom", fontweight="bold")
+ax.text(4.5, 3.0, "relayed hop by hop; each relay signs and counts the hop;\nthe window is clamped to the policy's heartbeat_expiry_s", fontsize=6.8, color=ACCENT, ha="center", va="top")
+ax.text(8.4, 3.0, "no valid heartbeat arrives; nothing here\ncan forge the authority's key to stay alive;\nat expiry every one of them halts itself", fontsize=6.8, color=TINT, ha="center", va="top")
+box(ax, 0.3, 1.1, 4.55, 1.3, "the segment with the authority", ["keeps running, rebuilds its roster without the others;", "an over-long window signed by a careless authority is", "clamped, so nobody is kept alive longer than policy allows"], kind="main", title_size=8.4, line_size=7.0)
+box(ax, 5.15, 1.1, 4.55, 1.3, "the segment without it", ["throttles, then halts at expiry on its own timers;", "a replayed old heartbeat fails on the sequence number", "and the window; a rogue box on the wire is never on a roster"], kind="tint", title_size=8.4, line_size=7.0)
+tag(ax, 0.3, 0.85, "The picture: a dead man's switch. The train runs while the driver holds the handle. Nobody has to send a stop; letting go is the stop, and a cut cable lets go.")
+note(ax, 0.38, "Sources: docs/02 (heartbeat fan-out; partitions and failure); tests H12 and H14; proofs P6 and P7 (fail closed, no ticket without a heartbeat)")
+save(fig, "fig_sc_heartbeat.png")
+
+# ---------------------------------------------------------------- 19. one owner per budget, and linked logs
+W, H = 10, 4.4
+fig, ax = new_fig(W, H)
+title(ax, H, "Shared budgets and shared history across a hall", "One governor owns each budget key. Every governor's log carries its neighbours' latest heads.")
+chip(ax, 0.5, 2.7, 1.3, 0.5, "governor 7\nwants to spend", size=6.6)
+chip(ax, 3.9, 2.7, 1.3, 0.5, "governor 3\nowns the key", size=6.6, fc=TINT_FILL, ec=TINT)
+arrow(ax, (1.8, 3.08), (3.9, 3.08), color=ACCENT, lw=1.3); ax.text(2.85, 3.16, "RESERVE: key, amount, ticket id, expiry", fontsize=6.6, color=ACCENT, ha="center", va="bottom")
+arrow(ax, (3.9, 2.82), (1.8, 2.82), color=TINT, lw=1.3); ax.text(2.85, 2.72, "RESERVE_OK, or DENY", fontsize=6.6, color=TINT, ha="center", va="top")
+ax.text(0.5, 2.35, "the owner ran the same check it runs for itself; the ticket is minted only on OK; COMMIT spends it;\nan uncommitted reservation expires with the ticket; if the owner vanishes in between, the commit fails\nand the device does not act. Nothing is spent twice.", fontsize=6.8, color=QUIET, va="top")
+for i in range(4):
+    x = 6.0 + i * 0.95
+    ax.add_patch(FancyBboxPatch((x, 2.3), 0.75, 1.1, boxstyle="round,pad=0,rounding_size=0.05", ec=ACCENT, fc=ACCENT_FILL, lw=1.1))
+    ax.text(x + 0.375, 3.25, "log %d" % (i + 1), fontsize=6.8, color=INK, ha="center", va="center", fontweight="bold")
+    for k in range(3):
+        ax.plot([x + 0.1, x + 0.65], [3.05 - k * 0.2, 3.05 - k * 0.2], color=RULE, lw=1.0)
+    ax.text(x + 0.375, 2.42, "+ heads of\nneighbours", fontsize=5.6, color=TINT, ha="center", va="center")
+    if i < 3: arrow(ax, (x + 0.75, 2.5), (x + 0.95, 2.5), color=TINT, lw=1.0, style="<|-|>")
+ax.text(7.85, 2.15, "hash-chained, signed checkpoints: rewriting one history\nmeans rewriting the neighbours', and theirs, outward", fontsize=6.6, color=QUIET, ha="center", va="top")
+tag(ax, 0.3, 1.15, "The picture: one cashier per cash drawer; a second cashier does not guess what is in it. And each security office writes the last line of the neighbours' log books into its own.")
+note(ax, 0.4, "Sources: docs/02 (shared budgets: budget_owners in the policy image; cross-linked logs); tests H13 and the checkpoint tests in H12")
+save(fig, "fig_sc_budget.png")
+
+# ---------------------------------------------------------------- 20. many sites
+W, H = 10, 5.6
+fig, ax = new_fig(W, H)
+title(ax, H, "Across data centers: the stamp travels, the wire does not", "Each site has its own loops. The authority is a key with no address. A ticket is checked by the device at the far end, wherever that is.")
+box(ax, 2.9, 3.95, 4.2, 0.62, "a global root: k of n keys held by parties who share no jurisdiction", ["signs each site's authority and the rulebook editions (docs/18, open question 16)"], kind="tint", title_size=7.2, line_size=6.4, pad=0.08)
+sites = [("Virginia", 0.4), ("Oregon", 3.65), ("Singapore", 6.9)]
+for name, x in sites:
+    ax.add_patch(FancyBboxPatch((x, 1.6), 2.7, 2.05, boxstyle="round,pad=0,rounding_size=0.1", ec=EDGE, fc=GRAY_FILL, lw=1.0))
+    ax.text(x + 0.15, 3.5, name, fontsize=8.6, color=INK, fontweight="bold", va="top")
+    for r in range(2):
+        for c in range(3):
+            chip(ax, x + 0.2 + c * 0.55, 2.3 + r * 0.55, 0.42, 0.3, "", size=5)
+        ax.add_patch(plt.Rectangle((x + 0.12, 2.22 + r * 0.55), 1.7, 0.46, fill=False, ec=TINT, lw=1.4, zorder=6))
+    ax.text(x + 1.0, 2.1, "its own halt loops;\nits own heartbeat timing", fontsize=6.4, color=TINT, ha="center", va="top")
+    box(ax, x + 1.95, 2.2, 0.68, 1.0, "site\nkey", [], kind="tint", title_size=7.0)
+    arrow(ax, (5.0, 3.95), (x + 2.29, 3.22), color=TINT, lw=1.0, dashed=True)
+arrow(ax, (1.5, 1.6), (1.5, 1.22), color=ACCENT, lw=1.6)
+box(ax, 0.4, 0.6, 2.2, 0.62, "minted in Virginia", ["action, fields digest, GPU id, edition, expiry"], kind="main", title_size=7.4, line_size=6.2, pad=0.08)
+arrow(ax, (2.6, 0.91), (7.3, 0.91), color=ACCENT, lw=1.6); ax.text(4.95, 0.99, "the ticket crosses any network, however long; the network is not where the lock is", fontsize=6.6, color=ACCENT, ha="center", va="bottom")
+box(ax, 7.3, 0.6, 2.4, 0.62, "checked in Singapore", ["by the device that acts, against the keys"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
+ax.text(9.7, 1.4, "no planet-wide halt wire, by design (Part 6)", fontsize=6.8, color=INK, ha="right", va="center", fontweight="bold")
+tag(ax, 0.3, 0.45, "The picture: a passport is stamped at home and checked at the border by the border guard, not by the airline in between. Not built yet: clocks across sites, and a key per site under the root.", size=7.4, width=160)
+save(fig, "fig_sc_sites.png")
+
+# ---------------------------------------------------------------- 21. what grows and what does not
+W, H = 10, 5.0
+fig, ax = new_fig(W, H)
+title(ax, H, "What grows with the data center, and what does not", "The count of chips grows. Everything a chip has to do stays the size of one GPU's worth of work.")
+rows_ = [("chips", "1 per GPU: 8 a tray, 72 a rack, as many as the hall has GPUs", "grows, linearly, and that is the only thing that does"),
+         ("a halt", "317 us worst case across a 72-governor loop, against 1 ms", "per domain; a bigger hall is more domains, not a slower halt"),
+         ("decisions", "each chip answers for its own GPU: a ticket, a hold, or a no", "no central box in the data path; nothing to saturate"),
+         ("fabric traffic", "quotes, rosters, heartbeats, reservations, heads", "kilobytes per second per governor, whatever the model's size"),
+         ("the heartbeat", "a window of seconds, signed by a key", "one key for a hall; a key per site under a root for many"),
+         ("the chip itself", "2 mm2 core; under 250 mW now, under 500 mW as a product", "the same die at every scale; QFN-64 prototype, BGA-169 product")]
+y = 3.95
+for i, (a_, b_, c_) in enumerate(rows_):
+    fc_ = ACCENT_FILL if i % 2 == 0 else "white"
+    ax.add_patch(FancyBboxPatch((0.3, y - 0.44), 9.4, 0.44, boxstyle="round,pad=0,rounding_size=0.04", ec=RULE, fc=fc_, lw=0.8))
+    ax.text(0.45, y - 0.22, a_, fontsize=8.0, color=INK, fontweight="bold", va="center")
+    ax.text(1.9, y - 0.22, b_, fontsize=7.2, color=QUIET, va="center")
+    ax.text(6.1, y - 0.22, c_, fontsize=7.2, color=TINT if i == 0 else ACCENT, va="center")
+    y -= 0.5
+tag(ax, 0.3, 0.85, "The picture: a city does not get one giant smoke detector when it grows. It gets a detector in every room, a loop on every floor, a panel in every building and one fire code. Each piece is the same size as it ever was.")
+note(ax, 0.38, "Sources: docs/04 §11 (physical targets), docs/11 and hw/loop/results.md, docs/02 (fabric bandwidth), test H9 (firmware share under 0.1 percent of GPU time)")
+save(fig, "fig_sc_numbers.png")
+
 print("done")
