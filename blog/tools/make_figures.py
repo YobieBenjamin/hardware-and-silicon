@@ -1050,27 +1050,36 @@ note(ax, 0.4, "Sources: docs/02 (shared budgets: budget_owners in the policy ima
 save(fig, "fig_sc_budget.png")
 
 # ---------------------------------------------------------------- 20. many sites
-W, H = 10, 5.6
+W, H = 10, 5.8
 fig, ax = new_fig(W, H)
 title(ax, H, "Across data centers: the stamp travels, the wire does not", "Each site has its own loops. The authority is a key with no address. A ticket is checked by the device at the far end, wherever that is.")
-box(ax, 2.9, 3.95, 4.2, 0.62, "a global root: k of n keys held by parties who share no jurisdiction", ["signs each site's authority and the rulebook editions (docs/18, open question 16)"], kind="tint", title_size=7.2, line_size=6.4, pad=0.08)
+# the root at the top, the three site keys in a row under it, each site box under its key: no line crosses a box or a word
+box(ax, 2.9, 4.2, 4.2, 0.62, "a global root: k of n keys held by parties who share no jurisdiction", ["signs each site's authority and the rulebook editions (docs/18, open question 16)"], kind="tint", title_size=7.2, line_size=6.4, pad=0.08)
 sites = [("Virginia", 0.4), ("Oregon", 3.65), ("Singapore", 6.9)]
 for name, x in sites:
-    ax.add_patch(FancyBboxPatch((x, 1.6), 2.7, 2.05, boxstyle="round,pad=0,rounding_size=0.1", ec=EDGE, fc=GRAY_FILL, lw=1.0))
-    ax.text(x + 0.15, 3.5, name, fontsize=8.6, color=INK, fontweight="bold", va="top")
+    kx = x + 1.35
+    box(ax, kx - 0.5, 3.45, 1.0, 0.62, "site key", ["signed by the root"], kind="tint", title_size=7.0, line_size=6.0, pad=0.07)
+    # an elbow from the root's bottom edge, through a gutter above the keys, down to the key: nothing underneath it
+    ax.plot([5.0, 5.0], [4.2, 4.13], color=TINT, lw=1.0, linestyle="--")
+    ax.plot([5.0, kx], [4.13, 4.13], color=TINT, lw=1.0, linestyle="--")
+    arrow(ax, (kx, 4.13), (kx, 4.08), color=TINT, lw=1.0, dashed=True)
+    ax.add_patch(FancyBboxPatch((x, 1.6), 2.7, 1.7, boxstyle="round,pad=0,rounding_size=0.1", ec=EDGE, fc=GRAY_FILL, lw=1.0))
+    ax.text(x + 0.15, 3.17, name, fontsize=8.6, color=INK, fontweight="bold", va="top")
     for r in range(2):
-        for c in range(3):
-            chip(ax, x + 0.2 + c * 0.55, 2.3 + r * 0.55, 0.42, 0.3, "", size=5)
-        ax.add_patch(plt.Rectangle((x + 0.12, 2.22 + r * 0.55), 1.7, 0.46, fill=False, ec=TINT, lw=1.4, zorder=6))
-    ax.text(x + 1.0, 2.1, "its own halt loops;\nits own heartbeat timing", fontsize=6.4, color=TINT, ha="center", va="top")
-    box(ax, x + 1.95, 2.2, 0.68, 1.0, "site\nkey", [], kind="tint", title_size=7.0)
-    arrow(ax, (5.0, 3.95), (x + 2.29, 3.22), color=TINT, lw=1.0, dashed=True)
-arrow(ax, (1.5, 1.6), (1.5, 1.22), color=ACCENT, lw=1.6)
-box(ax, 0.4, 0.6, 2.2, 0.62, "minted in Virginia", ["action, fields digest, GPU id, edition, expiry"], kind="main", title_size=7.4, line_size=6.2, pad=0.08)
-arrow(ax, (2.6, 0.91), (7.3, 0.91), color=ACCENT, lw=1.6); ax.text(4.95, 0.99, "the ticket crosses any network, however long; the network is not where the lock is", fontsize=6.6, color=ACCENT, ha="center", va="bottom")
-box(ax, 7.3, 0.6, 2.4, 0.62, "checked in Singapore", ["by the device that acts, against the keys"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
-ax.text(9.7, 1.4, "no planet-wide halt wire, by design (Part 6)", fontsize=6.8, color=INK, ha="right", va="center", fontweight="bold")
-tag(ax, 0.3, 0.45, "The picture: a passport is stamped at home and checked at the border by the border guard, not by the airline in between. Not built yet: clocks across sites, and a key per site under the root.", size=7.4, width=160)
+        for c in range(4):
+            chip(ax, x + 0.3 + c * 0.55, 1.98 + r * 0.44, 0.42, 0.3, "", size=5)
+    # one halt loop per site, drawn once around its governors
+    ax.add_patch(FancyBboxPatch((x + 0.2, 1.9), 2.3, 0.92, boxstyle="round,pad=0,rounding_size=0.08", fill=False, ec=TINT, lw=1.5, zorder=6))
+    ax.text(x + 1.35, 2.86, "the site's halt loop (a wire; it ends at the site's wall)", fontsize=6.0, color=TINT, ha="center", va="bottom")
+    ax.text(x + 1.35, 1.66, "its own heartbeat timing, under the site key", fontsize=6.0, color=QUIET, ha="center", va="bottom")
+# the ticket: minted under Virginia, checked under Singapore, nothing between them but the network
+arrow(ax, (1.75, 1.6), (1.75, 1.4), color=ACCENT, lw=1.6)
+box(ax, 0.4, 0.78, 2.7, 0.62, "minted in Virginia", ["action, fields digest, GPU id, edition, expiry"], kind="main", title_size=7.4, line_size=6.2, pad=0.08)
+arrow(ax, (3.1, 1.09), (6.9, 1.09), color=ACCENT, lw=1.6)
+ax.text(5.0, 1.17, "the ticket crosses any network, however long;\nthe network is not where the lock is", fontsize=6.6, color=ACCENT, ha="center", va="bottom")
+box(ax, 6.9, 0.78, 2.7, 0.62, "checked in Singapore", ["by the device that acts, against the governors' keys"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
+ax.text(5.0, 1.41, "no planet-wide halt wire, by design (Part 6)", fontsize=6.8, color=INK, ha="center", va="bottom", fontweight="bold")
+tag(ax, 0.3, 0.58, "The picture: a passport is stamped at home and checked at the border by the border guard, not by the airline in between. Not built yet: clocks across sites, and a key per site under the root (docs/18, open question 17).", size=7.4, width=160)
 save(fig, "fig_sc_sites.png")
 
 # ---------------------------------------------------------------- 21. what grows and what does not
