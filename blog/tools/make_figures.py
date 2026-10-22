@@ -457,14 +457,16 @@ chip_items = [
     ("Burned in at the factory (fuses, ROM)", ["unique device secret; hashes of the governance keys;", "anti-rollback counter; lifecycle state. Nobody changes", "these afterwards, including us"], "plain"),
     ("Measured boot and keys", ["extend-only registers; the signing key is derived from", "the code that booted (change one byte, lose the key);", "an odometer that only counts up; true randomness"], "plain"),
     ("The gate: ten questions in order; the first no wins", [
-        "1  is the form well formed?",
+        "1  is the chip running, and is the letter in order? (a dead",
+        "    heartbeat or an expired rulebook already stopped it at the door)",
         "2  is the asking GPU attested, token valid, edition current?",
         "3  seen this request before? (replay store)",
-        "4  alarm raised, heartbeat dead, rulebook expired? then no",
-        "5  which rule? workload \u00d7 action, exact before wildcard;",
-        "    typed limits; lists (a protected site is a no)",
+        "4  alarm raised? then no",
+        "5  which rule, and does the form fit it? workload \u00d7 action,",
+        "    exact before wildcard; the fields present; typed limits;",
+        "    lists (a protected site is a no)",
         "6  which lane? automatic, needs a witness, needs a human",
-        "7  witnesses present, signed, fresh, about this request?",
+        "7  a witness verdict: observer key, fresh, about this request?",
         "8  inside the rate window?",
         "9  budget: reserve the amount against the limit",
         "10 human lane: park a hold. Otherwise mint the ticket"], "main"),
@@ -639,13 +641,13 @@ for i, (lab, guards, byst, note_) in enumerate(cols):
     ax.text(x + bw / 2, 0.55, note_, fontsize=7.6, color=QUIET, ha="center", va="top")
 ax.plot([x0 - 0.1, x0 + 5 * (bw + gap) - gap + 0.1], [1.35, 1.35], color=INK, lw=1)
 ax.text(x0 - 0.15, 3.65, "big bar: guards needed   small bar: share of bystander connections cut", fontsize=8.2, color=QUIET, ha="left")
-ax.text(x0 - 0.15, 3.9, "Model: a 60-node network with 6 separate roads to every point, 12 model copies, 10 devices, 40 bystanders", fontsize=8.2, color=QUIET, ha="left")
+ax.text(x0 - 0.15, 3.9, "Model: a 60-node network with 6 separate roads to every point, 12 model copies, 10 devices, 40 bystanders, plus the laptop and the motor", fontsize=8.2, color=QUIET, ha="left")
 save(fig, "fig_ks_cuts.png")
 
 # ---------------------------------------------------------------- 5. what a country's shutdown really is
 W, H = 10, 5.0
 fig, ax = new_fig(W, H)
-title(ax, H, "“But Iran switched off the Internet.” Yes. Look at what that was.", "An edge cut on one region: every access link inside the border, nobody outside, everyone inside, and a hole for the people who own the switch.")
+title(ax, H, "“But Iran switched off the Internet.” Yes. Look at what that was.", "A cut at the network's edge, on one region: every access link inside the border, nobody outside, everyone inside, and a hole for the people who own the switch.")
 pts = mesh(ax, 6.4, 2.1, 1.7, 1.1, n=16, seed=6)
 ax.text(6.4, 3.55, "the rest of the world: untouched", fontsize=8.4, color=QUIET, ha="center", fontweight="bold")
 # the region
@@ -789,20 +791,20 @@ for j in range(0, 5):
     yy = y0 + ph * j / 4
     ax.text(x0 - 0.1, yy, f"{j * 25}%", fontsize=7.8, color=QUIET, ha="right", va="center")
 ax.text(x0 + pw / 2, y0 - 0.42, "share of the network's core destroyed, at random", fontsize=8.2, color=INK, ha="center", va="top")
-ax.text(x0 - 0.75, y0 + ph / 2, "roads\nstill\nopen", fontsize=8.2, color=INK, ha="center", va="center")
+ax.text(x0 - 0.75, y0 + ph / 2, "pairs\nstill\nconnected", fontsize=8.2, color=INK, ha="center", va="center")
 xs_ = [x0 + pw * f for f, _, _ in perc]
 ax.plot(xs_, [y0 + ph * a for _, a, _ in perc], color=ACCENT, lw=2.4, zorder=3)
 ax.plot(xs_, [y0 + ph * b for _, _, b in perc], color=QUIET, lw=1.8, linestyle="--", zorder=3)
 ax.text(xs_[-1] + 0.08, y0 + ph * perc[-1][1] + 0.12, "AI copies to devices", fontsize=8, color=ACCENT, va="center")
 ax.text(xs_[-1] + 0.08, y0 + ph * perc[-1][2] - 0.14, "everyone else", fontsize=8, color=QUIET, va="center")
 # annotations
-ax.annotate("70% of the core gone:\nfour roads in five still open", xy=(xs_[7], y0 + ph * perc[7][1]), xytext=(xs_[4] - 0.2, y0 + ph * 0.45),
+ax.annotate("70% of the core gone:\nfour pairs in five still connected", xy=(xs_[7], y0 + ph * perc[7][1]), xytext=(xs_[4] - 0.2, y0 + ph * 0.45),
             fontsize=8, color=INK, ha="center", arrowprops=dict(arrowstyle="-", color=EDGE, lw=0.9))
-ax.annotate("90% gone: one in five still open", xy=(xs_[9], y0 + ph * perc[9][1]), xytext=(xs_[7] - 0.3, y0 + ph * 0.12),
+ax.annotate("90% gone: one pair in five still connected", xy=(xs_[9], y0 + ph * perc[9][1]), xytext=(xs_[7] - 0.3, y0 + ph * 0.12),
             fontsize=8, color=INK, ha="center", arrowprops=dict(arrowstyle="-", color=EDGE, lw=0.9))
 ax.plot([x0 + pw * 0.72, x0 + pw * 0.72], [y0, y0 + ph * 0.3], color=TINT, lw=1.2, linestyle=":")
-ax.text(x0 + pw * 0.72, y0 + ph * 0.33, "the targeted edge cut from the chart before:\n72% of the core, chosen with the list of every machine", fontsize=7.6, color=TINT, ha="center", va="bottom")
-ax.text(x0, y0 + ph + 0.18, "Model: 60-node core, six separate roads to every point, 12 copies, 10 devices, 40 bystanders; 40 random trials per point", fontsize=7.8, color=QUIET, ha="left")
+ax.text(x0 + pw * 0.72, y0 + ph * 0.33, "the targeted cut at the network's edge, from the chart before:\n72% of the core, chosen with the list of every machine", fontsize=7.6, color=TINT, ha="center", va="bottom")
+ax.text(x0, y0 + ph + 0.18, "Model: 60-node core, six separate roads to every point, 12 copies, 10 devices, 40 bystanders, plus the laptop and the motor; 40 random trials per point", fontsize=7.8, color=QUIET, ha="left")
 save(fig, "fig_ks_percolation.png")
 
 # ---------------------------------------------------------------- 11. the smaller end
@@ -930,7 +932,7 @@ save(fig, "fig_sc_tray.png")
 # One wire per picture: the same rack drawn twice, once with the halt loop, once with the fabric.
 W, H = 10, 6.2
 fig, ax = new_fig(W, H)
-title(ax, H, "One rack: two wires through every governor, separate from every network", "The halt loop is dumb and fast. The message fabric is smart and signed. Both fail safe. One wire per drawing, same rack.")
+title(ax, H, "One rack: two wires through every governor, separate from every network", "Dumb and fast; smart and signed; both fail safe. One wire per drawing of the same rack: 72 governors, drawn as nine trays of eight.")
 
 def rack(ax, x0, y0, trays=9, th=0.24, tg=0.04, n=8, pitch=0.27):
     """nine trays stacked, eight governors each; the tray fill sits under everything so a wire can show through;
@@ -970,7 +972,7 @@ ax.text(xr + 0.2, cy_, "a cut, a pulled board or a dead\ngovernor here reads as 
 # right: the fabric
 fx0 = 5.55
 ax.text(fx0, 5.17, "the message fabric", fontsize=9.0, color=ACCENT, fontweight="bold", va="top")
-ax.text(fx0 + 1.6, 5.15, "two rings, 100BASE-T1 or SGMII, on their own pairs", fontsize=6.6, color=QUIET, va="top")
+ax.text(fx0 + 1.6, 5.15, "two rings, 100BASE-T1, on their own pairs", fontsize=6.6, color=QUIET, va="top")
 rows2, (gx0, gy0, gw, gh) = rack(ax, fx0 + 0.5, 2.2)
 ax.add_patch(FancyBboxPatch((gx0 - 0.16, gy0 - 0.16), gw + 0.32, gh + 0.32, boxstyle="round,pad=0,rounding_size=0.1", fill=False, ec=ACCENT, lw=1.3, zorder=2))
 ax.add_patch(FancyBboxPatch((gx0 - 0.3, gy0 - 0.3), gw + 0.6, gh + 0.6, boxstyle="round,pad=0,rounding_size=0.12", fill=False, ec=ACCENT, lw=1.3, linestyle=":", zorder=2))
@@ -982,7 +984,7 @@ ax.text(gx0 + gw / 2, gy0 - 0.33, "ring B, counter-clockwise", fontsize=5.8, col
 # the two text panels under the racks
 box(ax, 0.3, 0.78, 4.6, 0.86, "what the loop does", ["a live-zero current: a dead wire reads as zero, and zero means stop; worst case 317 us", "to the last of 72 governors (1 ms bound, 39 simulations); reclosed only by a signed CLEAR"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
 box(ax, 5.1, 0.78, 4.6, 0.86, "what the fabric carries", ["every tray hangs on both rings: quotes, rosters, heartbeats, editions, budget reservations,", "alarms, checkpoint heads; kilobytes per second per governor; a stranger's, an old or a stale note is binned"], kind="main", title_size=7.4, line_size=6.0, pad=0.08)
-tag(ax, 0.3, 0.62, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled, and rings them if the wire is cut. The intercom carries who pulled it and which rulebook is in force.")
+tag(ax, 0.3, 0.62, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled and reports a cut wire at once; this loop goes further, a cut halts. The intercom carries who pulled it and which rulebook is in force.")
 note(ax, 0.2, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests H11 and H12")
 save(fig, "fig_sc_wires.png")
 
