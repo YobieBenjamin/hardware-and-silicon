@@ -182,6 +182,14 @@ rewritten) and the stack blocks all of them; it says nothing about physical
 attacks, which is exactly the gap the silicon design (`docs/SILICON.md`) exists to
 close. Endpoints are stubs that describe an effect instead of causing one.
 
+## Reviews and criticism, on the record
+
+Outside reviews are kept in this repository with our answers, objections included.
+[`audit/external-2026-10-22/`](audit/external-2026-10-22/) holds an independent audit of
+22 October 2026 verbatim, which found three failures here (the gate's key derivable from public
+quotes, an approval surviving a policy change, a replayed epoch), with our response, the fixes and
+the regressions in `tests/test_audit_2026_10_22.py`. `docs/REVIEW-2026-10.md` is the earlier review.
+
 ## License
 
 Source-available, not open source. Copyright (c) 2026 Yobie Benjamin. Software is licensed under the PolyForm Noncommercial License 1.0.0 ([LICENSE.md](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/LICENSE.md)); documentation, data and figures under CC BY-NC 4.0 ([LICENSE-DOCS.txt](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/LICENSE-DOCS.txt)). Attribution is required for any use in whole or in part ([NOTICE](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/NOTICE)); commercial use requires a separate license. See [LICENSING.md](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/LICENSING.md) for scope and contact, and [CITATION.cff](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/CITATION.cff) to cite this work.
