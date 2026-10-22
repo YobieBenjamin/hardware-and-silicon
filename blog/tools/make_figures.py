@@ -927,41 +927,63 @@ note(ax, 0.4, "Sources: docs/02 (roster formation), docs/03 (NVSwitch management
 save(fig, "fig_sc_tray.png")
 
 # ---------------------------------------------------------------- 15. the two wires through a rack
-W, H = 10, 5.8
+# One wire per picture: the same rack drawn twice, once with the halt loop, once with the fabric.
+W, H = 10, 6.2
 fig, ax = new_fig(W, H)
-title(ax, H, "One rack: two wires through every governor, separate from every network", "The halt loop is dumb and fast. The message fabric is smart and signed. Both fail safe.")
-trays = 9
-ty0, th, tgap = 1.45, 0.3, 0.06
-for t in range(trays):
-    y = ty0 + t * (th + tgap)
-    ax.add_patch(FancyBboxPatch((1.2, y), 3.6, th, boxstyle="round,pad=0,rounding_size=0.04", ec=EDGE, fc="white", lw=1.0))
-    ax.text(1.28, y + 0.02, "tray %d" % (trays - t), fontsize=5.4, color=QUIET, va="bottom")
-    for k in range(8):
-        chip(ax, 2.0 + k * 0.34, y + 0.08, 0.28, 0.18, "", size=5)
-pts = []
-for t in range(trays):
-    y = ty0 + t * (th + tgap) + 0.17
-    pts += [(1.95, y), (4.75, y)] if t % 2 == 0 else [(4.75, y), (1.95, y)]
-for p_, q_ in zip(pts, pts[1:]):
-    ax.plot([p_[0], q_[0]], [p_[1], q_[1]], color=TINT, lw=1.8, zorder=6)
-ax.plot([pts[-1][0], 1.0, 1.0, 1.95], [pts[-1][1], pts[-1][1], pts[0][1], pts[0][1]], color=TINT, lw=1.8, zorder=6)
-chip(ax, 0.3, ty0 - 0.05, 0.62, 0.4, "super-\nvisor", size=5.6, fc=TINT_FILL, ec=TINT)
-cy_ = ty0 + 4 * (th + tgap) + 0.17
-ax.plot([4.9, 5.1], [cy_ - 0.1, cy_ + 0.1], color=INK, lw=2.2, zorder=7); ax.plot([4.9, 5.1], [cy_ + 0.1, cy_ - 0.1], color=INK, lw=2.2, zorder=7)
-ax.text(5.2, cy_, "a cut here", fontsize=6.6, color=INK, ha="left", va="center", fontweight="bold")
-rx = 5.75
-top_y = ty0 + (trays - 1) * (th + tgap) + 0.17
-for t in range(trays):
-    y = ty0 + t * (th + tgap) + 0.17
-    ax.plot([4.8, rx], [y, y], color=ACCENT, lw=0.9, zorder=2)
-ax.plot([rx, rx], [ty0 + 0.17, top_y], color=ACCENT, lw=1.6)
-ax.plot([rx + 0.08, rx + 0.08], [ty0 + 0.17, top_y], color=ACCENT, lw=1.6, linestyle=":")
-ax.text(1.2, 4.9, "the loop (coral): one twisted pair, tray to tray and back to the supervisor", fontsize=6.6, color=TINT, va="top", ha="left")
-ax.text(1.2, 4.76, "the fabric (blue): ring A and ring B, 100BASE-T1 or SGMII on their own pairs", fontsize=6.6, color=ACCENT, va="top", ha="left")
-box(ax, 6.2, 3.05, 3.5, 1.85, "the halt loop (the coral wire)", ["a series current loop with a live-zero current:", "a dead wire reads as zero, and zero means stop;", "a cut, a pulled board, a dead governor read as open", "any governor opens it; every slot halts within two", "sense periods: 317 us worst case for 72 governors", "closed again only by a signed CLEAR at every one"], kind="tint", title_size=8.6, line_size=6.8)
-box(ax, 6.2, 1.25, 3.5, 1.65, "the fabric (the blue wire)", ["every note signed with a fused key, numbered,", "stamped with the rulebook edition; an old note,", "a stranger's note, or last year's edition: binned", "it carries quotes, rosters, heartbeats, budgets,", "alarms, checkpoint heads: kilobytes per second"], kind="main", title_size=8.6, line_size=6.8)
-tag(ax, 0.3, 1.0, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled, and rings them if the wire is cut. The intercom carries who pulled it and which rulebook is in force.")
-note(ax, 0.38, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests H11 and H12")
+title(ax, H, "One rack: two wires through every governor, separate from every network", "The halt loop is dumb and fast. The message fabric is smart and signed. Both fail safe. One wire per drawing, same rack.")
+
+def rack(ax, x0, y0, trays=9, th=0.24, tg=0.04, n=8, pitch=0.27):
+    """nine trays stacked, eight governors each; the tray fill sits under everything so a wire can show through;
+    the tray's name sits in its top-left corner, above the wire's line"""
+    rows = []
+    w = 0.55 + n * pitch + 0.1
+    for t in range(trays):
+        y = y0 + t * (th + tg)
+        ax.add_patch(FancyBboxPatch((x0, y), w, th, boxstyle="round,pad=0,rounding_size=0.03", ec=EDGE, fc="white", lw=0.9, zorder=1))
+        ax.text(x0 + 0.06, y + th - 0.02, "tray %d" % (trays - t), fontsize=5.0, color=QUIET, va="top", zorder=5)
+        for k in range(n):
+            cx_ = x0 + 0.65 + k * pitch
+            chip(ax, cx_ - 0.1, y + 0.04, 0.2, th - 0.08, "", size=5)
+        rows.append(y + th / 2)
+    return rows, (x0, y0, w, trays * (th + tg) - tg)
+
+# left: the halt loop
+ax.text(0.3, 5.17, "the halt loop", fontsize=9.0, color=TINT, fontweight="bold", va="top")
+ax.text(1.5, 5.15, "one twisted pair, governor to governor through every tray, and back", fontsize=6.6, color=QUIET, va="top")
+rows, (rx0, ry0, rw, rh) = rack(ax, 0.75, 2.2)
+xl, xr = rx0 - 0.12, rx0 + rw + 0.12        # the wire enters each tray at xl and leaves it at xr (or the reverse), turning outside the tray
+for i, yc in enumerate(rows):
+    ax.plot([xl, xr], [yc, yc], color=TINT, lw=1.6, zorder=2)
+for i in range(len(rows) - 1):
+    xside = xr if i % 2 == 0 else xl
+    ax.plot([xside, xside], [rows[i], rows[i + 1]], color=TINT, lw=1.6, zorder=2)
+wire_y = ry0 - 0.36
+ax.plot([xl, xl], [rows[0], wire_y], color=TINT, lw=1.6, zorder=2)                      # tray 9's open end down to the supervisor's wire
+last_side = xr if (len(rows) - 1) % 2 == 0 else xl
+ax.plot([last_side, last_side], [rows[-1], wire_y], color=TINT, lw=1.6, zorder=2)        # tray 1's open end down
+ax.plot([xl, xr], [wire_y, wire_y], color=TINT, lw=1.6, zorder=2)                        # closed through the supervisor
+chip(ax, rx0 + rw / 2 - 0.55, wire_y - 0.14, 1.1, 0.28, "supervisor governor", size=5.8, fc=TINT_FILL, ec=TINT)
+cy_ = rows[4]
+ax.plot([xr - 0.07, xr + 0.07], [cy_ - 0.07, cy_ + 0.07], color=INK, lw=2.0, zorder=7); ax.plot([xr - 0.07, xr + 0.07], [cy_ + 0.07, cy_ - 0.07], color=INK, lw=2.0, zorder=7)
+ax.text(xr + 0.2, cy_, "a cut, a pulled board or a dead\ngovernor here reads as open:\nevery slot in the rack halts", fontsize=6.2, color=INK, ha="left", va="center")
+
+# right: the fabric
+fx0 = 5.55
+ax.text(fx0, 5.17, "the message fabric", fontsize=9.0, color=ACCENT, fontweight="bold", va="top")
+ax.text(fx0 + 1.6, 5.15, "two rings, 100BASE-T1 or SGMII, on their own pairs", fontsize=6.6, color=QUIET, va="top")
+rows2, (gx0, gy0, gw, gh) = rack(ax, fx0 + 0.5, 2.2)
+ax.add_patch(FancyBboxPatch((gx0 - 0.16, gy0 - 0.16), gw + 0.32, gh + 0.32, boxstyle="round,pad=0,rounding_size=0.1", fill=False, ec=ACCENT, lw=1.3, zorder=2))
+ax.add_patch(FancyBboxPatch((gx0 - 0.3, gy0 - 0.3), gw + 0.6, gh + 0.6, boxstyle="round,pad=0,rounding_size=0.12", fill=False, ec=ACCENT, lw=1.3, linestyle=":", zorder=2))
+for yc in rows2:
+    ax.plot([gx0 + gw, gx0 + gw + 0.16], [yc, yc], color=ACCENT, lw=0.9, zorder=2)
+ax.text(gx0 + gw / 2, gy0 - 0.14, "ring A, clockwise", fontsize=5.8, color=ACCENT, ha="center", va="bottom")
+ax.text(gx0 + gw / 2, gy0 - 0.33, "ring B, counter-clockwise", fontsize=5.8, color=ACCENT, ha="center", va="top")
+
+# the two text panels under the racks
+box(ax, 0.3, 0.78, 4.6, 0.86, "what the loop does", ["a live-zero current: a dead wire reads as zero, and zero means stop; worst case 317 us", "to the last of 72 governors (1 ms bound, 39 simulations); reclosed only by a signed CLEAR"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
+box(ax, 5.1, 0.78, 4.6, 0.86, "what the fabric carries", ["every tray hangs on both rings: quotes, rosters, heartbeats, editions, budget reservations,", "alarms, checkpoint heads; kilobytes per second per governor; a stranger's, an old or a stale note is binned"], kind="main", title_size=7.4, line_size=6.0, pad=0.08)
+tag(ax, 0.3, 0.62, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled, and rings them if the wire is cut. The intercom carries who pulled it and which rulebook is in force.")
+note(ax, 0.2, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests H11 and H12")
 save(fig, "fig_sc_wires.png")
 
 # ---------------------------------------------------------------- 16. rosters
