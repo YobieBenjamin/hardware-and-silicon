@@ -200,7 +200,10 @@ replay store, holds, rate windows, budget reservations) and the endpoints' state
 (`endpoint-state.json`: consumed tickets, policy epoch) on disk, written with
 write-temp → fsync → rename before any decision returns. `Node.restart()` rebuilds the
 gate, the endpoints and the supervisor from those stores with the same DICE-style gate
-key, so outstanding tickets stay verifiable and consumed ones stay consumed. Without
+key (derived from the CPU's secret CDI), so outstanding tickets stay verifiable and consumed ones
+stay consumed. The gate also stores the newest policy it has loaded and its version, and the
+endpoint the newest epoch version, so a restart comes back on the newest policy and an older
+signed policy or epoch is refused before and after a restart. Without
 `state_dir` the state is in memory, which is the pre-review behaviour.
 
 A rule may carry `budget: {key, param, limit, window_s}` (a shared allowance, reserved

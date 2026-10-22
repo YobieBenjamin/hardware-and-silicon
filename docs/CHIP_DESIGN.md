@@ -159,9 +159,13 @@ Invariants:
 
 - Replay state, holds, rate windows, reservations, consumed ids and the epoch survive restart (durable writes before return).
 - One ledger owns a budget key; shared allowances are reserved at the owner, never approximated locally.
-- A ticket from a superseded policy epoch is refused.
+- A ticket from a superseded policy epoch is refused, at the endpoint and again at the gate's commit.
+- Every governance document (policy, revocation list, reference values) carries a version; an older one is refused, so a replayed document cannot roll the gate back, move an endpoint to an old epoch or un-revoke a device. A signature says who wrote a document, not that it is current; the version says that.
+- A hold belongs to the policy it was parked under: a new policy drops it, and an approval for a hold from another policy is refused (`approval.policy_changed`).
 - A ticket names the endpoint it is valid at when the rule says so.
-- The gate's key is DICE-style derived from what booted; a restart of the same code keeps the key.
+- The gate's key is DICE-style derived from the CPU's secret CDI (the fused secret and what booted); a restart of the same code keeps the key and nothing public goes into it.
+
+The four lines above about versions, holds, the commit check and the key were added on 22 October 2026, after an external audit reproduced each failure against `11eb119`; `tests/test_audit_2026_10_22.py` holds the regressions.
 - Requester-supplied fields outside the rule's constraints never influence rule selection or path.
 
 ## 8. Claims and their limits
@@ -234,7 +238,7 @@ The ticket as [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/
 | `action`, `params_digest` | What may happen, and with exactly which fields |
 | `measurement` | The workload the permission was granted to |
 | `rule` | The rulebook entry that allowed it |
-| `policy_id` (added) | The policy epoch; the endpoint refuses any other |
+| `policy_id` (added) | The policy epoch; the endpoint refuses any other, and the gate refuses to commit a ticket whose policy it has replaced |
 | `endpoint` (added, optional) | The endpoint registry the ticket is valid at |
 | `budget_key`, `reservation` (added) | The shared allowance and the reservation held against it; committed by the endpoint before it acts |
 | `issued_at`, `expires_at` | Lifetime; an unused reservation is released at expiry |

@@ -79,7 +79,12 @@ class DurableState:
             "allows": {},      # "measurement|action" → [timestamps]
             "budgets": {},     # key → {"committed": [[amount, ts], …], "reserved": {rid: {...}}}
             "epoch": None,     # policy id the endpoint currently accepts
+            "epoch_version": 0,   # the policy version behind it: an epoch with a lower one is a replay
+            "policy_version": 0,  # the gate's: the newest governance policy version it has loaded
+            "signed_policy": None,  # the gate's: that policy document, so a restart reloads the newest one
         }
+        for k, v in (("epoch_version", 0), ("policy_version", 0), ("signed_policy", None)):
+            self.data.setdefault(k, v)
 
     # -- persistence ---------------------------------------------------------------------
 
@@ -134,9 +139,16 @@ class DurableState:
     def epoch(self) -> str | None:
         return self.data.get("epoch")
 
-    def set_epoch(self, policy_id: str) -> None:
+    def set_epoch(self, policy_id: str, version: int = 0) -> None:
+        """Move to a policy epoch. Refuses one whose policy version is below the current one, or a
+        different policy under the same version: a signature proves the gate issued an epoch once,
+        not that it is still the current one (an old epoch replayed resurrected revoked tickets until
+        22 October 2026)."""
         with self.lock:
-            self.data["epoch"] = policy_id
+            cur_v, cur = self.data.get("epoch_version", 0), self.data.get("epoch")
+            if version < cur_v or (version == cur_v and cur is not None and policy_id != cur):
+                raise ValueError(f"policy epoch: version {version} is not newer than the current {cur_v} (a replayed epoch)")
+            self.data["epoch"], self.data["epoch_version"] = policy_id, version
             self.save()
 
     # -- budget ledger -------------------------------------------------------------------

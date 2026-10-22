@@ -104,6 +104,7 @@ class PolicyGate:
         self.ticket_ttl = ticket_ttl
         self.policy: dict | None = None
         self.policy_id: str | None = None
+        self.policy_version: int = 0
         self.state = DurableState(store)
 
     @property
@@ -117,16 +118,32 @@ class PolicyGate:
         payload = require_signed(signed, self.governance, "gate policy")
         if payload.get("type") != "gate-policy":
             raise ValueError("not a gate policy")
-        policy = validate_policy(payload["policy"])
-        self.policy = policy
-        self.policy_id = digest(policy)[:16]
-        self._log("gate.policy_loaded", policy_id=self.policy_id, rules=len(policy["rules"]))
+        version = payload.get("version")
+        if not isinstance(version, int) or version < 1:
+            raise ValueError("gate policy: no version")
+        with self.state.lock:
+            if version < self.state.data["policy_version"]:
+                raise ValueError(f"gate policy: version {version} is older than the loaded version {self.state.data['policy_version']}")
+            policy = validate_policy(payload["policy"])
+            new_id = digest(policy)[:16]
+            if version == self.state.data["policy_version"] and self.policy_id is not None and new_id != self.policy_id:
+                raise ValueError(f"gate policy: a different policy under the loaded version {version}")
+            self.policy, self.policy_id, self.policy_version = policy, new_id, version
+            # a hold was parked under the rules of its edition; the new rules re-decide (the governor does
+            # the same). Until 22 October 2026 an approval released a hold the current rules would refuse.
+            stale = [h for h, rec in self.state.holds.items() if rec.get("policy_id") != new_id]
+            for h in stale:
+                del self.state.holds[h]
+            self.state.data["policy_version"], self.state.data["signed_policy"] = version, signed
+            self.state.save()
+        self._log("gate.policy_loaded", policy_id=self.policy_id, version=version, rules=len(policy["rules"]), holds_dropped=len(stale))
 
     def signed_epoch(self) -> dict:
         """The policy epoch endpoints bind tickets to. Re-issued after every ``load_policy``."""
         if self.policy_id is None:
             raise ValueError("no policy loaded")
-        return sign_object(self._key, {"type": "policy-epoch", "gate": self.name, "policy_id": self.policy_id, "issued_at": self.clock.now()})
+        return sign_object(self._key, {"type": "policy-epoch", "gate": self.name, "policy_id": self.policy_id,
+                                       "policy_version": self.policy_version, "issued_at": self.clock.now()})
 
     # -- the decision --------------------------------------------------------------------
 
@@ -192,7 +209,7 @@ class PolicyGate:
                 return self._deny(rh, ["rate.limit"], action=action, measurement=measurement, rule=rule["id"])
         if requirement["mode"] == "human":
             hold_id = random_nonce(8)
-            self.state.holds[hold_id] = {"request_hash": rh, "core": request_core(req), "expires_at": now + self.policy["hold_ttl_s"], "rule": rule["id"]}
+            self.state.holds[hold_id] = {"request_hash": rh, "core": request_core(req), "expires_at": now + self.policy["hold_ttl_s"], "rule": rule["id"], "policy_id": self.policy_id}
             self.state.save()
             self._log("gate.decision", decision="hold", request_hash=rh, action=action, measurement=measurement, rule=rule["id"], hold_id=hold_id)
             return GateResult(Decision.HOLD, ["human.approval_required"], rh, hold_id=hold_id, rule_id=rule["id"])
@@ -220,6 +237,10 @@ class PolicyGate:
             self.state.holds.pop(hold_id, None)
             self.state.save()
             return self._deny(hold_id, ["approval.expired"], action="approve", measurement="-")
+        if hold.get("policy_id") != self.policy_id:
+            self.state.holds.pop(hold_id, None)
+            self.state.save()
+            return self._deny(hold_id, ["approval.policy_changed"], action="approve", measurement="-")
         self.state.holds.pop(hold_id)
         self.state.save()
         core = hold["core"]
@@ -329,6 +350,11 @@ class PolicyGate:
                 self._log("gate.commit", ok=False, reason="ticket.signature")
                 return False
             p = ticket["payload"]
+            if p.get("policy_id") != self.policy_id:
+                # the gate's own half of the freshness check: a ticket minted under an edition the gate
+                # has since replaced does not commit, whatever the endpoint believes the epoch is
+                self._log("gate.commit", ok=False, reason="ticket.policy_stale", ticket_id=p.get("ticket_id"))
+                return False
             if "reservation" not in p:
                 self._log("gate.commit", ok=True, ticket_id=p["ticket_id"], reservation=None)
                 return True  # nothing to charge; the ticket's own checks are the endpoint's job

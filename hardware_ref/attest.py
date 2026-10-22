@@ -32,19 +32,39 @@ from .keys import SigningKey, VerifyKey, require_signed, random_nonce, sign_obje
 from .root import ZERO, Firmware, evidence_digest, golden_registers
 
 
+def newer_or_same(kind: str, payload: dict, high_water: dict[str, tuple[int, str]]) -> None:
+    """Refuse a governance document older than the newest one loaded of its kind, or a different
+    document claiming the same version. Reloading the very same document is fine."""
+    from .canon import digest
+    v = payload.get("version")
+    if not isinstance(v, int) or v < 1:
+        raise ValueError(f"{kind}: no version")
+    seen = high_water.get(kind)
+    d = digest(payload)
+    if seen is not None and (v < seen[0] or (v == seen[0] and d != seen[1])):
+        raise ValueError(f"{kind}: version {v} is older than the loaded version {seen[0]} (a replayed document)")
+    high_water[kind] = (v, d)
+
+
 class GovernanceRoot:
     """Layer 5: the policy authority's root key."""
 
     def __init__(self, name: str = "governance-root"):
         self.name = name
         self._key = SigningKey.generate()
+        self._versions: dict[str, int] = {}
 
     @property
     def public(self) -> VerifyKey:
         return self._key.public
 
     def sign(self, kind: str, body: dict) -> dict:
-        return sign_object(self._key, {"type": kind, "issuer": self.name, **body})
+        """Every document of a kind carries a version one above the last, so whoever loads it can tell
+        the newest from an older one replayed. A signature says who wrote a document, not that it is
+        still current; the version is what says that."""
+        self._versions[kind] = self._versions.get(kind, 0) + 1
+        return sign_object(self._key, {"type": kind, "issuer": self.name, "version": self._versions[kind], **body})
+
 
     def reference_values(self, classes: dict[str, dict]) -> dict:
         """``classes`` = {device_class: {"min_svn": int, "firmware": {digest: {"name","version","registers"}}}}."""
@@ -97,6 +117,7 @@ class AttestationVerifier:
         self._used: set[str] = set()
         self.reference: dict = {}
         self.revoked: set[str] = set()
+        self._high_water: dict[str, tuple[int, str]] = {}   # kind -> (version, digest) of the newest document loaded
 
     @property
     def public(self) -> VerifyKey:
@@ -108,12 +129,14 @@ class AttestationVerifier:
         payload = require_signed(signed, self.governance, "reference values")
         if payload.get("type") != "reference-values":
             raise ValueError("not a reference-values document")
+        newer_or_same("reference-values", payload, self._high_water)
         self.reference = payload["classes"]
 
     def load_revocations(self, signed: dict) -> None:
         payload = require_signed(signed, self.governance, "revocation list")
         if payload.get("type") != "revocation-list":
             raise ValueError("not a revocation list")
+        newer_or_same("revocation-list", payload, self._high_water)   # an old list must not un-revoke a device
         self.revoked = set(payload["device_ids"])
 
     # -- nonces -------------------------------------------------------------------------

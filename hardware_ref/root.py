@@ -144,6 +144,7 @@ class SiliconRoot:
         self.firmware = firmware
         # DICE: CDI = HMAC(UDS, measurement). Different code ⇒ different CDI ⇒ different key.
         cdi = hmac_sha256(self.__uds, bytes.fromhex(firmware.digest))
+        self.__cdi = cdi                     # stays inside this class: only derive_key() reads it
         self.__alias_key = SigningKey.from_seed(hkdf(cdi, b"DICE/Alias"))
         # The ROM layer certifies the alias key *together with the measurement it was derived from*.
         self.alias_cert = sign_object(
@@ -163,6 +164,16 @@ class SiliconRoot:
             self.__fused_svn = firmware.svn  # burn the fuse forward
 
     # -- attestation -------------------------------------------------------------------
+
+    def derive_key(self, label: bytes) -> SigningKey:
+        """A signing key for software running on this device, derived from the CDI the way DICE derives
+        the next layer's keys: it depends on the fused secret and on what booted, so the same code on the
+        same chip gets the same key back after a restart, and different code gets a different key.
+        Nothing public goes in. (Until 22 October 2026 the gate's key was derived from the two alias
+        *public* keys, which anyone holding a quote could recompute; an audit found it.)"""
+        if getattr(self, "_SiliconRoot__cdi", None) is None:
+            raise RuntimeError("device has not booted")
+        return SigningKey.from_seed(hkdf(self.__cdi, b"DICE/derived/" + label))
 
     def _report(self, nonce: str, user_data: dict[str, Any] | None, registers: list[bytes]) -> dict:
         assert self.firmware is not None

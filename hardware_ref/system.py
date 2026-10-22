@@ -155,7 +155,7 @@ class Node:
             key=self.gate_key,
             store=gate_store,
         )
-        gate.load_policy(self.signed_policy)
+        gate.load_policy(gate.state.data.get("signed_policy") or self.signed_policy)   # the newest the gate ever loaded
         endpoints = _endpoints(gate, self.clock, ep_store)
         actuator = SentryActuator(gate.audit)
         supervisor = SupervisorMiddleware(gate, self.clock, sentry=self.sentry, actuator=actuator)
@@ -233,10 +233,11 @@ def build_node(*, clock: SimClock | None = None, rollback_protection: bool = Tru
     sentry = SentryObserver("sentry", clock)
     registry = StubProvenanceRegistry("wm-registry", clock)
     approver_key = SigningKey.generate()
-    # The gate's key is derived the way DICE derives an alias key, from what booted, so a restart of
-    # the same code yields the same key instead of a new one. (In silicon the input is the secret
-    # CDI; here it is the two chips' certified alias identities, which is enough for a simulation.)
-    gate_key = SigningKey.from_seed(hkdf(bytes.fromhex(cpu.alias_cert["payload"]["subject_pub"]) + bytes.fromhex(gpu.alias_cert["payload"]["subject_pub"]), b"gate-signing-key", 32))
+    # The gate's key is derived the way DICE derives a layer's key: from the CPU's secret CDI, which
+    # depends on the fused secret and on what booted, so a restart of the same code yields the same
+    # key and nothing outside the chip can compute it. (Until 22 October 2026 the input was the two
+    # alias public keys, which any quote carries, so anyone could recompute the gate's key.)
+    gate_key = cpu.derive_key(b"gate-signing-key")
     gate_store, ep_store = _stores(state_dir)
     gate = PolicyGate(
         verifier.public,

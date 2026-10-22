@@ -82,7 +82,8 @@ class EndpointRegistry:
         """Accept a gate-signed policy epoch; tickets from any other epoch are refused from now on."""
         if not verify_object(signed_epoch, self.gate) or signed_epoch["payload"].get("type") != "policy-epoch":
             raise ValueError("policy epoch: signature invalid or not the gate's")
-        self.state.set_epoch(signed_epoch["payload"]["policy_id"])
+        p = signed_epoch["payload"]
+        self.state.set_epoch(p["policy_id"], int(p.get("policy_version", 0)))   # an older epoch is refused (ValueError)
         self.audit.append({"event": "endpoint.epoch", "endpoint": self.name, "policy_id": self.state.epoch})
 
     def register(self, action: str, handler: Handler) -> None:
