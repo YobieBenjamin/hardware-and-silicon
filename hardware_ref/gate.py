@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Layer 4: the control plane.
 
 The gate is the only path from a model to a consequential action
@@ -74,6 +76,34 @@ def request_core(req: dict) -> dict:
 
 def request_hash(req: dict) -> str:
     return digest(request_core(req))
+
+
+def request_auth_payload(gate_name: str, req: dict, session_pub: str) -> dict:
+    """What the attested session key signs to prove the requester controls the attested compute.
+
+    The attestation token proves that *some* approved compute produced evidence. It does not,
+    on its own, prove that whoever presents it controls that compute: a copied token is a
+    bearer credential. So the token names an ephemeral session public key (``session_pub``) that
+    the attested workload vouched for inside its signed quote, and the gate requires every request
+    to carry a signature by the matching private key over this binding. The binding names the gate
+    (the audience), the exact action, parameters and request id, so a borrowed token cannot be
+    spent on another gate, for another request, or by a process that does not hold the session key.
+    This reuses SG's host-signed-command pattern rather than inventing a second origin guarantee.
+    """
+    return {
+        "type": "request-auth",
+        "gate": gate_name,
+        "request_id": req.get("request_id"),
+        "measurement": req.get("measurement"),
+        "action": req.get("action"),
+        "params_digest": digest(req.get("params") or {}),
+        "session_pub": session_pub,
+    }
+
+
+def sign_request_auth(session_key: SigningKey, gate_name: str, req: dict) -> dict:
+    """Sign the proof-of-possession binding for ``req`` with the attested session key."""
+    return sign_object(session_key, request_auth_payload(gate_name, req, session_key.public.hex))
 
 
 class PolicyGate:
@@ -178,6 +208,9 @@ class PolicyGate:
                 reasons.append("attestation.expired")
             if tp.get("measurement") != measurement:
                 reasons.append("attestation.measurement_mismatch")
+            # The token names an attested session key; the requester must prove it holds that
+            # key over this exact request, or the token is a transferable bearer credential.
+            reasons += self._check_session(req, tp, measurement, action, req.get("params") or {})
         if reasons:
             return self._deny(rh, reasons, action=action, measurement=measurement)
 
@@ -249,6 +282,39 @@ class PolicyGate:
         return self._allow(core, hold["request_hash"], rule, now)
 
     # -- helpers -------------------------------------------------------------------------
+
+    def _check_session(self, req: dict, tp: dict, measurement: str, action: str, params: dict) -> list[str]:
+        """Possession check: the request must be signed by the ephemeral key the token names.
+
+        ``verify_object`` only returns true when the envelope's embedded key is the session key
+        AND the signature is valid, so a borrower who holds only the public token and measurement
+        cannot produce a passing proof. The binding ties the signature to this gate (audience),
+        this request id and these parameters, so a proof made for one gate, session or request does
+        not transfer to another.
+        """
+        session_pub = tp.get("session_pub")
+        if session_pub is None:
+            return ["attestation.session_unbound"]
+        try:
+            session_key = VerifyKey.from_hex(session_pub)
+        except (ValueError, TypeError):
+            return ["attestation.session_unbound"]
+        auth = req.get("request_auth")
+        if auth is None:
+            return ["request_auth.missing"]
+        if not verify_object(auth, session_key):
+            return ["request_auth.signature"]
+        ap = auth.get("payload", {}) if isinstance(auth, dict) else {}
+        if ap.get("type") != "request-auth":
+            return ["request_auth.type"]
+        if ap.get("gate") != self.name:
+            return ["request_auth.audience"]
+        if ap.get("session_pub") != session_pub:
+            return ["request_auth.session_mismatch"]
+        if (ap.get("request_id") != req.get("request_id") or ap.get("measurement") != measurement
+                or ap.get("action") != action or ap.get("params_digest") != digest(params)):
+            return ["request_auth.request_mismatch"]
+        return []
 
     def _check_observer(self, req: dict, rh: str, requirement: dict, now: float) -> list[str]:
         wanted = requirement["observer"]

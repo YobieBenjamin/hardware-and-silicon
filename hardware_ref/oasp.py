@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Working with the NVIDIA Open Agent Safety Platform (OASP).
 
 NVIDIA's platform (announced 28 Sep 2026) has two parts: **OpenShell**, an
@@ -272,6 +274,7 @@ class SupervisorMiddleware:
         self.drift = drift or DriftPolicy()
         self.routes: list[Route] = []
         self._sandboxes: dict[str, dict] = {}
+        self._session_keys: dict[str, SigningKey] = {}  # session_pub hex → the attested host's request-signing key
         self._denials: dict[str, collections.deque] = collections.defaultdict(collections.deque)
         self.telemetry: Callable[[OutboundRequest], dict] = lambda req: {"drift_score": 0.0, "identity_verified": True}
         self.provenance: Callable[[OutboundRequest], dict | None] = lambda req: None
@@ -289,9 +292,17 @@ class SupervisorMiddleware:
     def add_route(self, route: Route) -> None:
         self.routes.append(route)
 
-    def bind_sandbox(self, sandbox_id: str, measurement: str, token: dict | None) -> None:
-        """Associate a sandbox with the attested host it runs on (token may be refreshed later)."""
+    def bind_sandbox(self, sandbox_id: str, measurement: str, token: dict | None, session_key: SigningKey | None = None) -> None:
+        """Associate a sandbox with the attested host it runs on (token may be refreshed later).
+
+        ``session_key`` is the request-signing key the host declared in its attestation. The
+        supervisor keeps it, keyed by its public half, so it can prove possession of the token's
+        session key on the sandbox's behalf (the supervisor is trusted middleware colocated with the
+        attested host). Sandboxes on the same host share the same key, found via the token's session_pub.
+        """
         self._sandboxes[sandbox_id] = {"measurement": measurement, "token": token}
+        if session_key is not None:
+            self._session_keys[session_key.public.hex] = session_key
 
     def refresh_token(self, sandbox_id: str, token: dict | None) -> None:
         self._sandboxes[sandbox_id]["token"] = token
@@ -371,6 +382,14 @@ class SupervisorMiddleware:
         prov = self.provenance(req)
         if prov is not None:
             gate_req["assertions"].append(prov)
+        # Prove possession of the token's attested session key over this request (F07).
+        token = binding["token"]
+        session_pub = token.get("payload", {}).get("session_pub") if isinstance(token, dict) else None
+        session_key = self._session_keys.get(session_pub) if session_pub else None
+        if session_key is not None:
+            from .gate import sign_request_auth
+
+            gate_req["request_auth"] = sign_request_auth(session_key, self.gate.name, gate_req)
 
         res = self.gate.request(gate_req)
         if res.decision is Decision.ALLOW:

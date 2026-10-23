@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Layer 5 (governance root) and the attestation verifier.
 
 Roles follow the IETF RATS architecture (RFC 9334):
@@ -29,6 +31,7 @@ from typing import Any
 from .canon import digest, sha256
 from .clock import SimClock
 from .keys import SigningKey, VerifyKey, require_signed, random_nonce, sign_object, verify_object
+from .ledger import StateStore
 from .root import ZERO, Firmware, evidence_digest, golden_registers
 
 
@@ -105,6 +108,7 @@ class AttestationVerifier:
         nonce_ttl: float = 120.0,
         token_ttl: float = 300.0,
         name: str = "verifier",
+        store: "StateStore | None" = None,
     ):
         self.name = name
         self.vendor_anchors = dict(vendor_anchors)
@@ -118,10 +122,67 @@ class AttestationVerifier:
         self.reference: dict = {}
         self.revoked: set[str] = set()
         self._high_water: dict[str, tuple[int, str]] = {}   # kind -> (version, digest) of the newest document loaded
+        # Durable rollback protection: the version floor and the active documents it names are
+        # persisted together so a reconstructed verifier cannot start from an empty floor and accept
+        # authentic-but-superseded documents (an old revocation list that un-revokes a device).
+        self.store = store
+        self._active: dict[str, dict] = {}     # kind -> the signed document currently in force
+        self._frozen: str | None = None        # set when recovery cannot re-establish freshness
+        self._restore()
 
     @property
     def public(self) -> VerifyKey:
         return self._key.public
+
+    # -- durable version floor + active documents ----------------------------------------
+
+    def _restore(self) -> None:
+        """Rebuild the version floor and the active documents from the store, atomically, before any
+        appraisal. A store that exists but cannot be re-verified freezes the verifier: it must not
+        issue appraisals on a freshness state it cannot trust."""
+        if self.store is None:
+            return
+        doc = self.store.load()
+        if not doc:
+            return
+        try:
+            high = doc.get("high_water") or {}
+            active = doc.get("active") or {}
+            restored_high: dict[str, tuple[int, str]] = {}
+            for kind, signed in active.items():
+                payload = require_signed(signed, self.governance, f"persisted {kind}")
+                if payload.get("type") != kind:
+                    raise ValueError(f"persisted {kind}: wrong type")
+                v, d = payload.get("version"), digest(payload)
+                hv = high.get(kind)
+                if hv is None or v != hv[0] or d != hv[1]:
+                    raise ValueError(f"persisted {kind} does not match its version floor")
+                restored_high[kind] = (v, d)
+                if kind == "reference-values":
+                    self.reference = payload["classes"]
+                elif kind == "revocation-list":
+                    self.revoked = set(payload["device_ids"])
+            for kind, hv in high.items():
+                if kind not in restored_high:
+                    raise ValueError(f"{kind}: version floor present but no active document to restore")
+            self._high_water = restored_high
+            self._active = dict(active)
+        except Exception:
+            # Recovery could not establish freshness; refuse to appraise until reconfigured.
+            self._high_water, self._active = {}, {}
+            self.reference, self.revoked = {}, set()
+            self._frozen = "verifier.freshness_unestablished"
+
+    def _persist(self, kind: str, signed: dict) -> None:
+        if self.store is None:
+            return
+        self._active[kind] = signed
+        # One atomic write (temp, fsync, rename): the version floor and the documents it names land
+        # together, so a power loss between the two cannot leave a floor without its documents.
+        self.store.save({
+            "high_water": {k: [v[0], v[1]] for k, v in self._high_water.items()},
+            "active": self._active,
+        })
 
     # -- configuration, all of it signed by the governance root --------------------------
 
@@ -131,6 +192,7 @@ class AttestationVerifier:
             raise ValueError("not a reference-values document")
         newer_or_same("reference-values", payload, self._high_water)
         self.reference = payload["classes"]
+        self._persist("reference-values", signed)
 
     def load_revocations(self, signed: dict) -> None:
         payload = require_signed(signed, self.governance, "revocation list")
@@ -138,6 +200,7 @@ class AttestationVerifier:
             raise ValueError("not a revocation list")
         newer_or_same("revocation-list", payload, self._high_water)   # an old list must not un-revoke a device
         self.revoked = set(payload["device_ids"])
+        self._persist("revocation-list", signed)
 
     # -- nonces -------------------------------------------------------------------------
 
@@ -161,8 +224,11 @@ class AttestationVerifier:
         """Return reason codes; empty list means the evidence is good.
 
         ``check_nonce_table=False`` is used by the composite path, which checks and
-        consumes the nonce once for the whole bundle.
+        consumes the nonce once for the whole bundle. A verifier whose durable freshness could
+        not be re-established refuses every appraisal rather than vouch for stale configuration.
         """
+        if self._frozen:
+            return [self._frozen]
         reasons: list[str] = []
         if not isinstance(evidence, dict) or not all(k in evidence for k in ("report", "report_sig", "alias_cert", "device_cert")):
             return ["evidence.malformed"]
@@ -247,6 +313,8 @@ class AttestationVerifier:
         *this* accelerator is the one attached to it, so an attacker cannot pair a
         clean CPU quote with a quote from some other, unmodified GPU.
         """
+        if self._frozen:
+            return AttestationResult(False, [self._frozen])
         reasons: list[str] = []
         if not isinstance(bundle, dict) or "cpu" not in bundle or "gpu" not in bundle:
             return AttestationResult(False, ["bundle.malformed"])
@@ -280,6 +348,13 @@ class AttestationVerifier:
             },
             "nonce": nonce,
         }
+        # The attested workload declared an ephemeral session public key inside its signed quote
+        # (CPU user data). Carrying it in the token lets the gate demand proof of possession, so the
+        # token stops being a transferable bearer credential. Absent (older attesters), the gate's
+        # session check fails closed rather than silently granting bearer semantics.
+        session_pub = bundle["cpu"]["report"].get("user_data", {}).get("session_pub")
+        if session_pub is not None:
+            claims["session_pub"] = session_pub
         token = sign_object(
             self._key,
             {
@@ -293,8 +368,16 @@ class AttestationVerifier:
         return AttestationResult(True, [], token, claims)
 
 
-def build_bundle(cpu, gpu, nonce: str) -> dict:
-    """The attester-side composition: quote the GPU, then quote the CPU with the GPU quote bound in."""
+def build_bundle(cpu, gpu, nonce: str, session_pub: str | None = None) -> dict:
+    """The attester-side composition: quote the GPU, then quote the CPU with the GPU quote bound in.
+
+    ``session_pub`` is the ephemeral request-signing key the workload will prove possession of at
+    the gate. It rides in the CPU quote's user data, so the alias key signs over it and the verifier
+    knows the attested compute, not some bystander, declared it.
+    """
     gpu_ev = gpu.quote(nonce)
-    cpu_ev = cpu.quote(nonce, user_data={"gpu_evidence": evidence_digest(gpu_ev)})
+    user_data = {"gpu_evidence": evidence_digest(gpu_ev)}
+    if session_pub is not None:
+        user_data["session_pub"] = session_pub
+    cpu_ev = cpu.quote(nonce, user_data=user_data)
     return {"nonce": nonce, "cpu": cpu_ev, "gpu": gpu_ev}

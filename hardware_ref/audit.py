@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Signed, hash-chained, Merkle-checkpointed audit trail.
 
 Every gate decision, every endpoint execution and every refusal lands here.
@@ -154,6 +156,7 @@ class VerifyReport:
     ok: bool
     reason: str = "ok"
     checked: int = 0
+    authenticated: bool = False  # True only when verified against a pinned gate key AND a retained checkpoint
 
 
 def entry_leaf(entry: dict) -> bytes:
@@ -257,13 +260,45 @@ class AuditLog:
         return VerifyReport(True, "ok", size)
 
     @staticmethod
-    def verify_export(doc: dict) -> VerifyReport:
-        pub = VerifyKey.from_hex(doc["pub"])
-        rep = AuditLog.verify_chain(doc["entries"], pub)
+    def verify_export(doc: dict, *, pub: VerifyKey | None = None, min_checkpoint: dict | None = None) -> VerifyReport:
+        """Verify an exported log.
+
+        Two modes, and the difference is the whole point of this function (F22):
+
+        * **Authenticated** (``pub`` given): the chain is verified against an INDEPENDENTLY PINNED
+          gate key, not the one embedded in the untrusted file, so a replacement history signed with
+          an attacker's key is rejected however well it is internally consistent. A pinned key alone
+          still lets an attacker keep a genuine signed prefix and drop the tail, so authenticated mode
+          also requires a retained, authenticated ``min_checkpoint`` and verifies the log is consistent
+          with it; a truncated or older export no longer covers the checkpoint and is rejected. Only
+          this mode returns ``authenticated=True``.
+        * **Self-consistency** (``pub`` omitted): the old behaviour, kept but labelled honestly. It
+          checks that the file is internally consistent under the key the file itself carries. It can
+          prove the records were not edited, deleted or reordered relative to each other, but it is NOT
+          proof that this is the authentic history produced by a particular gate: the file supplies the
+          key, so an attacker who re-signs everything, or who strips the tail and all checkpoints, still
+          passes. The reason text says so, and ``authenticated`` stays False.
+        """
+        authenticated = pub is not None
+        if authenticated:
+            key = pub
+        else:
+            try:
+                key = VerifyKey.from_hex(doc["pub"])
+            except (KeyError, ValueError, TypeError):
+                return VerifyReport(False, "self-consistency: no usable public key in the file", 0, authenticated=False)
+        rep = AuditLog.verify_chain(doc.get("entries", []), key)
         if not rep.ok:
-            return rep
+            return VerifyReport(rep.ok, rep.reason, rep.checked, authenticated=authenticated)
         for cp in doc.get("checkpoints", []):
-            crep = AuditLog.verify_checkpoint(cp, doc["entries"], pub)
+            crep = AuditLog.verify_checkpoint(cp, doc["entries"], key)
             if not crep.ok:
-                return crep
-        return VerifyReport(True, "ok", len(doc["entries"]))
+                return VerifyReport(False, crep.reason, crep.checked, authenticated=authenticated)
+        if not authenticated:
+            return VerifyReport(True, "self-consistent only (NOT authenticated to a gate key; the file supplied its own key)", len(doc["entries"]), authenticated=False)
+        if min_checkpoint is None:
+            return VerifyReport(False, "authenticated verification requires a retained minimum checkpoint", len(doc["entries"]), authenticated=True)
+        crep = AuditLog.verify_checkpoint(min_checkpoint, doc.get("entries", []), key)
+        if not crep.ok:
+            return VerifyReport(False, "retained checkpoint: " + crep.reason, crep.checked, authenticated=True)
+        return VerifyReport(True, "authenticated against the pinned gate key and the retained checkpoint", len(doc["entries"]), authenticated=True)

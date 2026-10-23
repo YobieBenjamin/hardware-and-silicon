@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """``hwctl``: run the reference node from the command line.
 
     hwctl demo                       narrated end-to-end flow on one node, then the NVIDIA OASP path
@@ -150,10 +152,24 @@ def cmd_sweep(args: argparse.Namespace) -> int:
 
 
 def cmd_verify_audit(args: argparse.Namespace) -> int:
+    from .keys import VerifyKey
+
     with open(args.file, encoding="utf-8") as fh:
         doc = json.load(fh)
-    rep = AuditLog.verify_export(doc)
-    print(f"{'OK' if rep.ok else 'TAMPERED'}: {rep.reason} ({rep.checked} entries checked, {len(doc.get('checkpoints', []))} checkpoints)")
+    pub = VerifyKey.from_hex(args.pub) if args.pub else None
+    min_checkpoint = None
+    if args.checkpoint:
+        with open(args.checkpoint, encoding="utf-8") as fh:
+            min_checkpoint = json.load(fh)
+    rep = AuditLog.verify_export(doc, pub=pub, min_checkpoint=min_checkpoint)
+    if rep.authenticated:
+        label = "OK (authenticated)" if rep.ok else "REJECTED"
+    else:
+        # No pinned key: internal consistency only, never presented as authenticated history.
+        label = "SELF-CONSISTENT (unauthenticated)" if rep.ok else "TAMPERED"
+        if rep.ok:
+            print("warning: no --pub pinned key given; this checks internal consistency only, not that the log is the authentic history from a particular gate. Pass --pub and --checkpoint for an authenticated check.")
+    print(f"{label}: {rep.reason} ({rep.checked} entries checked, {len(doc.get('checkpoints', []))} checkpoints)")
     return 0 if rep.ok else 2
 
 
@@ -172,6 +188,8 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_sweep)
     p = sub.add_parser("verify-audit", help="verify an exported audit log")
     p.add_argument("file")
+    p.add_argument("--pub", default=None, help="hex of the INDEPENDENTLY PINNED gate key; without it the check is self-consistency only, not authenticated")
+    p.add_argument("--checkpoint", default=None, help="path to a retained, authenticated checkpoint JSON; required with --pub for rollback/truncation protection")
     p.set_defaults(fn=cmd_verify_audit)
     sub.add_parser("openshell-policy", help="derived OpenShell network_policies YAML").set_defaults(fn=cmd_openshell_policy)
     p = sub.add_parser("ocsf", help="export a demo audit trail as OCSF-shaped events")

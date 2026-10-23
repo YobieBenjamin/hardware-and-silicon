@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """One reference node with every layer wired together.
 
     Layer 0  SiliconRoot ×2 (cpu-tee, gpu)       root.py
@@ -25,7 +27,7 @@ from .assertions import StubObserver, StubProvenanceRegistry
 from .attest import AttestationResult, AttestationVerifier, GovernanceRoot, build_bundle, reference_entry, workload_measurement
 from .clock import SimClock
 from .endpoints import EndpointRegistry, stub_handlers
-from .gate import GateResult, PolicyGate, make_approval, request_hash
+from .gate import GateResult, PolicyGate, make_approval, request_hash, sign_request_auth
 from .keys import SigningKey, hkdf
 from .ledger import StateStore
 from .oasp import Route, SentryActuator, SentryObserver, SupervisorMiddleware
@@ -133,6 +135,7 @@ class Node:
     notes: list[str] = field(default_factory=list)
     state_dir: str | None = None
     gate_key: SigningKey | None = None
+    session_key: SigningKey | None = None   # the attested ephemeral request-signing key for the current attestation
 
     # -- restart ---------------------------------------------------------------------------
 
@@ -169,7 +172,10 @@ class Node:
 
     def attest(self) -> AttestationResult:
         nonce = self.verifier.issue_nonce()
-        return self.verifier.verify_node(build_bundle(self.cpu, self.gpu, nonce))
+        # Mint a fresh ephemeral session key and declare it inside the quote, so the token the
+        # verifier issues is bound to a key only this (attested) workload holds.
+        self.session_key = SigningKey.generate()
+        return self.verifier.verify_node(build_bundle(self.cpu, self.gpu, nonce, session_pub=self.session_key.public.hex))
 
     def build_request(self, action: str, params: dict, token: dict | None, *, measurement: str | None = None, observe: bool = True, provenance: bool = False, risk: float | None = None) -> dict:
         req = {"request_id": uuid.uuid4().hex, "measurement": measurement or self.measurement, "action": action, "params": params, "attestation_token": token, "assertions": []}
@@ -178,6 +184,10 @@ class Node:
             req["assertions"].append(self.observer.assess(rh, action, params, risk=risk))
         if provenance and isinstance(params.get("body"), str):
             req["assertions"].append(self.registry.attest(params["body"]))
+        # Prove possession of the attested session key over this exact request (F07). Without it the
+        # gate treats the token as unbound and fails closed.
+        if self.session_key is not None:
+            req["request_auth"] = sign_request_auth(self.session_key, self.gate.name, req)
         return req
 
     def act(self, action: str, params: dict, token: dict | None, **kw: Any) -> tuple[GateResult, dict | None]:
@@ -270,7 +280,7 @@ def build_oasp_node(*, clock: SimClock | None = None, observer: str | list[str] 
     """
     node = build_node(clock=clock, observer=observer, high_authority_observer=high_authority_observer)
     res = node.attest()
-    node.supervisor.bind_sandbox("sandbox-a", node.measurement, res.token if res.accepted else None)
+    node.supervisor.bind_sandbox("sandbox-a", node.measurement, res.token if res.accepted else None, session_key=node.session_key)
     if second_witness:
         node.supervisor.add_witness(lambda rh, action, params: node.observer.assess(rh, action, params))
     return node
