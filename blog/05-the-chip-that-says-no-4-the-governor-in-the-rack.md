@@ -339,3 +339,7 @@ cd safety-governor && ./run.sh          # the governor: 119 tests, 15 RTL simula
 ```
 
 If anyone wants to collaborate on any phase of this, I am here: yobie AT ieee DOT org.
+
+---
+
+*Licensing and IP: this post is © 2026 Yobie Benjamin. Documentation and posts are under CC BY-NC 4.0; the project's code is under the PolyForm Noncommercial License 1.0.0. Attribution required; commercial use requires a separate written license (see [LICENSING.md](https://github.com/YobieBenjamin/autonomic-graph-regulation/blob/main/LICENSING.md)). This is independent work and is not affiliated with, sponsored by, or endorsed by any company named in it; NVIDIA, OpenShell, Sentry, BlueField and DOCA are trademarks of NVIDIA Corporation.*
