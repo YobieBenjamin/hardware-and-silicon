@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Gate policy: capability rules keyed on *what code is running*.
 
 A policy is a plain document the governance root signs (``attest.GovernanceRoot.policy``)::

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """The NVIDIA Open Agent Safety Platform path: supervisor middleware, policy translation, Sentry, OCSF export."""
 from hardware_ref.audit import AuditLog
 from hardware_ref.clock import SimClock

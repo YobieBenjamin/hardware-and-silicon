@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Keys, signatures and key derivation.
 
 Ed25519 everywhere. The TCG DICE specification permits Ed25519 for layered

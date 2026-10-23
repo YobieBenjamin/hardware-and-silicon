@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Lane interfaces: what the control plane accepts from Layer 2 and Layer 3.
 
 The three repositories stay in separate lanes. This module defines the

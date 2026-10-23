@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """End to end: manufacture → boot → attest → request → gate → ticket → endpoint → audit → verify, then the sweep."""
 from hardware_ref.audit import AuditLog
 from hardware_ref.harness import CATALOGUE, run_sweep

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """hardware_ref: reference stack for the hardware lane of a layered AI-safety architecture.
 
 Layer 0 silicon root of trust · attestation verifier · Layer 4 control plane

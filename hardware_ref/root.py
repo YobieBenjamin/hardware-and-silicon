@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Layer 0: the silicon root of trust.
 
 ``SiliconRoot`` emulates the smallest set of hardware facilities that make

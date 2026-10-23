@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 Yobie Benjamin. Noncommercial use only; see NOTICE and LICENSING.md.
 """Regressions for the external audit of 22 October 2026 (findings 3, 4 and 5 against this
 repository, and two more of the same kind found while fixing them). Each test failed on 11eb119.
 
