@@ -232,25 +232,25 @@ Seventy-five attacks blocked with the predicted reason code, twelve baselines al
 
 | Id | Claim | Falsified if |
 | --- | --- | --- |
-| H0 | Within the declared boundary, no protected operation executes without a fresh authorization bound to that exact operation | Any attack in the EP or TX blocks passes at any phase |
-| H1 | Attestation binds permissions to firmware, model manifest and policy | A modified firmware, a swapped model or a changed policy leaves the fingerprint or the epoch unchanged |
-| H2 | Every boundary crossing in the domain has an enforcement point | Any bytes leave over any listed path without a permission, or a path is found that the list missed (Phase 3) |
-| H3 | Policy cannot change without a quorum | Any unquorumed change succeeds with host root |
-| H4 | The broker cannot choose its own rule or lane | Any requester-supplied label changes a decision |
-| H5 | Alarms are monotone | Any alarm cleared without a rule or a key |
-| H6 | The comparator holds with every layer above it compromised | A release or a commit succeeds with the gate, broker and runtime under red-team control |
-| H7 | The assumptions register is complete for the deployment | An input the gate relied on turns out to have no authoritative source, no freshness bound, or no conflict rule |
-| H8 | Human override is slow and fully logged | Override latency below the policy floor, or any override missing from the log |
-| H9 | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
-| H10 | Permitted channels leak less than the threat model's budget | Model extraction through the output channel exceeds the query budget without tripping a limit |
-| H11 | A halt reaches every GPU in the rack within the bound, fail-safe | Any GPU keeps running after a halt or a loop break, or any governor clears alone |
-| H12 | Only roster members speak on the fabric, and only once per message | A rogue or replayed message is acted on; a forged heartbeat keeps a governor alive |
-| H13 | Shared budgets cannot be overspent across governors | Concurrent reservations exceed the limit |
-| H14 | Partitions and epoch changes end in safe states, never stale ones | A cut-off segment keeps running; an epoch applies unevenly |
-| H15 | Production silicon has no debug path; tamper leaves nothing to steal | A debug access succeeds in production, or keys survive a tamper event |
-| H16 | The levers work without the GPU's cooperation | A GPU that ignores software keeps running after the governor asserts its levers |
+| CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION | Within the declared boundary, no protected operation executes without a fresh authorization bound to that exact operation | Any attack in the EP or TX blocks passes at any phase |
+| CONTRACT-ATTESTATION-BINDS-PERMISSIONS | Attestation binds permissions to firmware, model manifest and policy | A modified firmware, a swapped model or a changed policy leaves the fingerprint or the epoch unchanged |
+| CONTRACT-EVERY-CROSSING-GOVERNED | Every boundary crossing in the domain has an enforcement point | Any bytes leave over any listed path without a permission, or a path is found that the list missed (Phase 3) |
+| CONTRACT-POLICY-QUORUM-NO-ROLLBACK | Policy cannot change without a quorum | Any unquorumed change succeeds with host root |
+| CONTRACT-BROKER-CANNOT-PICK-RULE | The broker cannot choose its own rule or lane | Any requester-supplied label changes a decision |
+| CONTRACT-ALARMS-ARE-MONOTONE | Alarms are monotone | Any alarm cleared without a rule or a key |
+| CONTRACT-COMPARATOR-SURVIVES-COMPROMISE | The comparator holds with every layer above it compromised | A release or a commit succeeds with the gate, broker and runtime under red-team control |
+| CONTRACT-ASSUMPTIONS-REGISTER-COMPLETE | The assumptions register is complete for the deployment | An input the gate relied on turns out to have no authoritative source, no freshness bound, or no conflict rule |
+| CONTRACT-OVERRIDE-SLOW-AND-LOGGED | Human override is slow and fully logged | Override latency below the policy floor, or any override missing from the log |
+| CONTRACT-ZERO-PER-TOKEN-OVERHEAD | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
+| CONTRACT-LEAKAGE-WITHIN-BUDGET | Permitted channels leak less than the threat model's budget | Model extraction through the output channel exceeds the query budget without tripping a limit |
+| CONTRACT-HALT-REACHES-EVERY-GPU | A halt reaches every GPU in the rack within the bound, fail-safe | Any GPU keeps running after a halt or a loop break, or any governor clears alone |
+| CONTRACT-ONLY-ROSTER-SPEAKS-ONCE | Only roster members speak on the fabric, and only once per message | A rogue or replayed message is acted on; a forged heartbeat keeps a governor alive |
+| CONTRACT-SHARED-BUDGET-NO-OVERSPEND | Shared budgets cannot be overspent across governors | Concurrent reservations exceed the limit |
+| CONTRACT-PARTITIONS-END-SAFE | Partitions and epoch changes end in safe states, never stale ones | A cut-off segment keeps running; an epoch applies unevenly |
+| CONTRACT-NO-DEBUG-IN-PRODUCTION | Production silicon has no debug path; tamper leaves nothing to steal | A debug access succeeds in production, or keys survive a tamper event |
+| CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION | The levers work without the GPU's cooperation | A GPU that ignores software keeps running after the governor asserts its levers |
 
-The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. H0 to H10 run today in this repository; H11 to H16, and H0 to H10 again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
+The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEAKAGE-WITHIN-BUDGET run today in this repository; CONTRACT-HALT-REACHES-EVERY-GPU to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION, and CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEAKAGE-WITHIN-BUDGET again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
 
 ## Tightened claims
 
@@ -324,7 +324,7 @@ Standards and building blocks:
 This repository:
 
 - [`docs/CHIP_DESIGN.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/CHIP_DESIGN.md), the design as a specification; [`docs/PROTOTYPING.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/PROTOTYPING.md), the experiment program; [`docs/REVIEW-2026-10.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/REVIEW-2026-10.md), the review and what changed.
-- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite H0 to H16, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
+- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
 - The companion lanes: [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation) (observers) and [`Watermark`](https://github.com/YobieBenjamin/Watermark) (provenance).
 - [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) of this series, and [the first post](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/01-a-multi-layer-approach-to-ai-safety.md), which laid out the layer model.
 
