@@ -50,14 +50,14 @@ add containment and provenance in increasing coverage; none of them replaces E.
 
 | Layer (from `docs/ARCHITECTURE.md`) | Silicon placement | Status |
 |---|---|---|
-| L5 governance root | ROM-anchored public keys; fuse-indexed revocation bitmap; k-of-n signatures on policy images; approver keys in the policy image | key custody rules; a key, not a chip |
-| L4 control plane: gate | CAM keyed on (measurement, action) + typed comparators + rate and budget counters + hold register + epoch register; on the DPU (A), the carrier (B) or the die (C) | software reference done (`gate.py`, `ledger.py`) |
-| L4 control plane: endpoint comparator | ticket verifier + durable consumed-id CAM + epoch register + heartbeat timer in the device that acts (guidance chip, HSM, motor controller, line card) | software reference done (`endpoints.py`) |
-| L4 control plane: audit | hash-chain engine to NVM; head and size in a root-owned register; checkpoints signed by the root-derived key | software reference done (`audit.py`) |
-| L3 observers | probe heads on isolated compute with their own measurement; verdict signing keys anchored in the policy image | `autonomic-graph-regulation`; NVIDIA Sentry |
-| L2 provenance | watermark engine in the sampling stage; registry signer | `Watermark` |
-| L1 model and runtime | CPU TEE + GPU TEE; measurement extended with the model manifest digest and the policy digest | confidential computing exists; the two extra measurements are the ask |
-| L0 silicon root | UDS, anti-rollback fuses, extend-only registers, DICE, quote engine, TRNG, monotonic counter | exists (vendor roots); modelled in `root.py` |
+| L5 (Governance Root) | ROM-anchored public keys; fuse-indexed revocation bitmap; k-of-n signatures on policy images; approver keys in the policy image | key custody rules; a key, not a chip |
+| L4 (Control Plane): gate | CAM keyed on (measurement, action) + typed comparators + rate and budget counters + hold register + epoch register; on the DPU (A), the carrier (B) or the die (C) | software reference done (`gate.py`, `ledger.py`) |
+| L4 (Control Plane): endpoint comparator | ticket verifier + durable consumed-id CAM + epoch register + heartbeat timer in the device that acts (guidance chip, HSM, motor controller, line card) | software reference done (`endpoints.py`) |
+| L4 (Control Plane): audit | hash-chain engine to NVM; head and size in a root-owned register; checkpoints signed by the root-derived key | software reference done (`audit.py`) |
+| L3 (Observers) | probe heads on isolated compute with their own measurement; verdict signing keys anchored in the policy image | `autonomic-graph-regulation`; NVIDIA Sentry |
+| L2 (Provenance) | watermark engine in the sampling stage; registry signer | `Watermark` |
+| L1 (Measured Runtime) | CPU TEE + GPU TEE; measurement extended with the model manifest digest and the policy digest | confidential computing exists; the two extra measurements are the ask |
+| L0 (Silicon Root) | UDS, anti-rollback fuses, extend-only registers, DICE, quote engine, TRNG, monotonic counter | exists (vendor roots); modelled in `root.py` |
 
 ## 4. The assumptions register
 
@@ -76,7 +76,7 @@ Rules:
 
 - Agreement between sources is not independence. A row that relies on "N sources agree"
   names why the sources do not share a failure mode.
-- A novelty detector is a witness (L3), never a guarantee against unenumerated cases.
+- A novelty detector is a witness, an L3 (Observers) signal, never a guarantee against unenumerated cases.
 - The semantic residual (a harmful sentence over an allowed channel) is outside the
   register by construction; narrow rulebooks, witnesses and human review live there.
 - Each endpoint names its safe transition. "Do nothing" is one option; for some devices

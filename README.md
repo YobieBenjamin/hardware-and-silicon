@@ -34,17 +34,17 @@ to live *below* the model, because anything above it can be stripped out:
    against a freshly built node, reported with the reason code the stack produced.
 
 ```
-   L5  governance root ─── signs ──► reference values · revocations · gate policy
-                                          │
-   L0  cpu-tee ─ quote ─┐                 ▼
-   L0  gpu ──── quote ──┴─► verifier ─► attestation token (5 min) ─┐
-                                                                   ▼
-   model ─► action request ─► ┌──────────── L4 gate ─────────────┐ ─► action ticket ─► endpoint
-            + L3 observer     │ attested? granted? witnessed?    │        (one-time, bound     (stub:
-              assertion       │ within budget? human hold?       │         to request hash)     payments,
-            + L2 provenance   └──────── every decision ──────────┘                               mail, shell,
-              assertion                        │                                                 http, weights)
-                                               ▼
+   L5 (Governance Root) ─── signs ──► reference values · revocations · gate policy
+                                        │
+   L0 (Silicon Root) cpu-tee ─ quote ─┐ ▼
+   L0 (Silicon Root) gpu ──── quote ──┴─► verifier ─► attestation token (5 min) ─┐
+                                                                                 ▼
+   model ─► action request ─► ┌────────── L4 (Control Plane) gate ──────────┐ ─► action ticket ─► endpoint
+            + L3 (Observers)  │ attested? granted? witnessed?               │  (one-time, bound         (stub:
+              assertion       │ within budget? human hold?                  │   to request hash)        payments,
+            + L2 (Provenance) └────────────── every decision ───────────────┘                           mail, shell,
+              assertion                              │                                                  http, weights)
+                                                     ▼
                        signed hash chain ─► Merkle checkpoints ─► inclusion / consistency proofs
 ```
 
@@ -93,11 +93,11 @@ every legitimate baseline goes through.
 
 | Layer | Attacks | Examples of what is caught, and how |
 |---|---|---|
-| L0 silicon root / attestation | 11/11 | patched firmware (measurement not in allowlist); *lying* firmware that reports golden registers (DICE: its signing key was derived from the real measurement, and the ROM-issued certificate says so); rollback on a fused chip (refused before boot) and on an unfused one (verifier: `svn.below_minimum`); cloned chip from an unknown fab; revoked device; nonce replay / expiry / attacker-chosen nonce; a clean GPU quote that the TEE never bound |
-| L5 governance | 3/3 | attacker-signed reference values; attacker-signed policy granting `shell.exec` (gate keeps the governance policy); governance-signed `default: allow` (refused at load) |
-| L4 control plane | 21/21 | missing / forged / expired / wrong-workload token; actions no rule grants (`shell.exec`, `model.weights.export`); amount ceiling, currency, destination pattern, type confusion, URL allowlist; rate-limit burst; request replay; executing a held request; forged, mis-bound, replayed and expired approvals |
-| L3 observer interface | 5/5 | missing, forged, stale, re-targeted verdicts; and a genuine high-risk verdict that denies the action |
-| L2 provenance interface | 5/5 | missing assertion, `tampered` verdict, an `exact` assertion for a different body, forged registry signature |
+| L0 (Silicon Root) / attestation | 11/11 | patched firmware (measurement not in allowlist); *lying* firmware that reports golden registers (DICE: its signing key was derived from the real measurement, and the ROM-issued certificate says so); rollback on a fused chip (refused before boot) and on an unfused one (verifier: `svn.below_minimum`); cloned chip from an unknown fab; revoked device; nonce replay / expiry / attacker-chosen nonce; a clean GPU quote that the TEE never bound |
+| L5 (Governance Root) | 3/3 | attacker-signed reference values; attacker-signed policy granting `shell.exec` (gate keeps the governance policy); governance-signed `default: allow` (refused at load) |
+| L4 (Control Plane) | 21/21 | missing / forged / expired / wrong-workload token; actions no rule grants (`shell.exec`, `model.weights.export`); amount ceiling, currency, destination pattern, type confusion, URL allowlist; rate-limit burst; request replay; executing a held request; forged, mis-bound, replayed and expired approvals |
+| L3 (Observers) interface | 5/5 | missing, forged, stale, re-targeted verdicts; and a genuine high-risk verdict that denies the action |
+| L2 (Provenance) interface | 5/5 | missing assertion, `tampered` verdict, an `exact` assertion for a different body, forged registry signature |
 | Endpoints / tickets | 6/6 | no ticket, replayed ticket, parameters or action swapped after issue, forged ticket, expired ticket |
 | Transactional authorization | 9/9 | a shared budget exhausted; 40 concurrent requests against one budget (exactly 8 pass); a ticket from a superseded policy epoch; a forged epoch; a consumed ticket and a decided request replayed *after a restart from durable state*; the gate unreachable at commit time (the endpoint fails closed); a compromised broker labelling a 25,000 USD payment "reversible" (held anyway); a forged ticket offered for commit |
 | Audit trail | 8/8 | edited record, deleted or reordered entries, truncation past a checkpoint, forged checkpoint, rewritten history (consistency proof fails), inclusion proof for a forged leaf |
@@ -114,13 +114,13 @@ all succeed, so the gate is not passing by refusing everything.
 
 | Path | Layer | What it does |
 |---|---|---|
-| `hardware_ref/root.py` | L0 | `SiliconRoot`: fused UDS, anti-rollback fuse, extend-only registers, DICE alias key, quote engine, attacker tooling (`forged_quote`) |
-| `hardware_ref/attest.py` | L5 + verifier | `GovernanceRoot` (signs reference values, revocations, policy); `AttestationVerifier` (nonces, cert chain, reference values, composite CPU+GPU binding, tokens) |
-| `hardware_ref/policy.py` | L4 | policy schema and validation (default-deny only), rule selection, parameter constraints |
-| `hardware_ref/gate.py` | L4 | `PolicyGate`: attestation → grant → witnesses → budget reservation → hold/allow, as one critical section; one-time action tickets bound to a policy epoch; approvals; commit/release |
-| `hardware_ref/ledger.py` | L4 | `StateStore`, `DurableState`: durable replay store, holds, rate windows, the budget ledger (reserve / commit / release / expiry) and the policy epoch |
-| `hardware_ref/endpoints.py` | L4 | `EndpointRegistry`: executes only against a valid, unconsumed, request-bound, current-epoch ticket; burns it durably and commits the reservation at the gate before acting |
-| `hardware_ref/assertions.py` | L2/L3 interface | observer and provenance assertion formats; stub producers used by the harness |
+| `hardware_ref/root.py` | L0 (Silicon Root) | `SiliconRoot`: fused UDS, anti-rollback fuse, extend-only registers, DICE alias key, quote engine, attacker tooling (`forged_quote`) |
+| `hardware_ref/attest.py` | L5 (Governance Root) + verifier | `GovernanceRoot` (signs reference values, revocations, policy); `AttestationVerifier` (nonces, cert chain, reference values, composite CPU+GPU binding, tokens) |
+| `hardware_ref/policy.py` | L4 (Control Plane) | policy schema and validation (default-deny only), rule selection, parameter constraints |
+| `hardware_ref/gate.py` | L4 (Control Plane) | `PolicyGate`: attestation → grant → witnesses → budget reservation → hold/allow, as one critical section; one-time action tickets bound to a policy epoch; approvals; commit/release |
+| `hardware_ref/ledger.py` | L4 (Control Plane) | `StateStore`, `DurableState`: durable replay store, holds, rate windows, the budget ledger (reserve / commit / release / expiry) and the policy epoch |
+| `hardware_ref/endpoints.py` | L4 (Control Plane) | `EndpointRegistry`: executes only against a valid, unconsumed, request-bound, current-epoch ticket; burns it durably and commits the reservation at the gate before acting |
+| `hardware_ref/assertions.py` | L2 (Provenance) / L3 (Observers) interface | observer and provenance assertion formats; stub producers used by the harness |
 | `hardware_ref/oasp.py` | NVIDIA OASP | `SupervisorMiddleware` (gate on OpenShell's request path), `to_openshell_network_policy`, `SentryObserver`, `SentryActuator`, `to_ocsf` |
 | `hardware_ref/audit.py` | audit | signed hash chain, RFC 6962 Merkle root, checkpoints, inclusion and consistency proofs, offline verifier |
 | `hardware_ref/system.py` | all | `build_node()`: wires one reference node with the default capability table |
