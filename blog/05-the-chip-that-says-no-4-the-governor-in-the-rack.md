@@ -241,7 +241,7 @@ Seventy-five attacks blocked with the predicted reason code, twelve baselines al
 | CONTRACT-COMPARATOR-SURVIVES-COMPROMISE | The comparator holds with every layer above it compromised | A release or a commit succeeds with the gate, broker and runtime under red-team control |
 | CONTRACT-ASSUMPTIONS-REGISTER-COMPLETE | The assumptions register is complete for the deployment | An input the gate relied on turns out to have no authoritative source, no freshness bound, or no conflict rule |
 | CONTRACT-OVERRIDE-SLOW-AND-LOGGED | Human override is slow and fully logged | Override latency below the policy floor, or any override missing from the log |
-| CONTRACT-ZERO-PER-TOKEN-OVERHEAD | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
+| CONTRACT-GOVERNOR-OVERHEAD-BOUNDED | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
 | CONTRACT-LEAKAGE-WITHIN-BUDGET | Permitted channels leak less than the threat model's budget | Model extraction through the output channel exceeds the query budget without tripping a limit |
 | CONTRACT-HALT-REACHES-EVERY-GPU | A halt reaches every GPU in the rack within the bound, fail-safe | Any GPU keeps running after a halt or a loop break, or any governor clears alone |
 | CONTRACT-ONLY-ROSTER-SPEAKS-ONCE | Only roster members speak on the fabric, and only once per message | A rogue or replayed message is acted on; a forged heartbeat keeps a governor alive |
@@ -250,7 +250,7 @@ Seventy-five attacks blocked with the predicted reason code, twelve baselines al
 | CONTRACT-NO-DEBUG-IN-PRODUCTION | Production silicon has no debug path; tamper leaves nothing to steal | A debug access succeeds in production, or keys survive a tamper event |
 | CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION | The levers work without the GPU's cooperation | A GPU that ignores software keeps running after the governor asserts its levers |
 
-The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEAKAGE-WITHIN-BUDGET run today in this repository; CONTRACT-HALT-REACHES-EVERY-GPU to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION, and CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEAKAGE-WITHIN-BUDGET again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
+The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. The eleven contract tests on authorization, attestation, crossings, policy, brokering, alarms, the comparator, assumptions, overrides, overhead and leakage run today in this repository; the six on halts, the roster, shared budgets, partitions, debug and levers, and the first eleven again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
 
 ## Tightened claims
 
@@ -324,7 +324,7 @@ Standards and building blocks:
 This repository:
 
 - [`docs/CHIP_DESIGN.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/CHIP_DESIGN.md), the design as a specification; [`docs/PROTOTYPING.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/PROTOTYPING.md), the experiment program; [`docs/REVIEW-2026-10.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/REVIEW-2026-10.md), the review and what changed.
-- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
+- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite of seventeen contract tests, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
 - The companion lanes: [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation) (observers) and [`Watermark`](https://github.com/YobieBenjamin/Watermark) (provenance).
 - [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) of this series, and [the first post](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/01-a-multi-layer-approach-to-ai-safety.md), which laid out the layer model.
 

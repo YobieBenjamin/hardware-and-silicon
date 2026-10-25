@@ -142,7 +142,7 @@ all succeed, so the gate is not passing by refusing everything.
 
 To check the whole program rather than read about it, start at [safety-governor/START-HERE.md](https://github.com/YobieBenjamin/safety-governor/blob/main/START-HERE.md): the theory, the logic, the proofs, the code that proves the code, and what is still open, with every command.
 
-The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor): the design, a functional model of a rack of governed GPUs, the hypothesis suite CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION, the RTL for the hard-core blocks, and the plan to put it on silicon.
+The chip itself is a separate project: [safety-governor](https://github.com/YobieBenjamin/safety-governor): the design, a functional model of a rack of governed GPUs, the hypothesis suite of seventeen contract tests, the RTL for the hard-core blocks, and the plan to put it on silicon.
 
 All in [`blog/`](blog/) as Markdown and Word, with figures (CC BY-NC 4.0, see License below).
 

@@ -1125,7 +1125,7 @@ for i, (a_, b_, c_) in enumerate(rows_):
     ax.text(6.1, y - 0.22, c_, fontsize=7.2, color=TINT if i == 0 else ACCENT, va="center")
     y -= 0.5
 tag(ax, 0.3, 0.85, "The picture: a city does not get one giant smoke detector when it grows. It gets a detector in every room, a loop on every floor, a panel in every building and one fire code. Each piece is the same size as it ever was.")
-note(ax, 0.38, "Sources: docs/04 §11 (physical targets), docs/11 and hw/loop/results.md, docs/02 (fabric bandwidth), test CONTRACT-ZERO-PER-TOKEN-OVERHEAD (firmware share under 0.1 percent of GPU time)")
+note(ax, 0.38, "Sources: docs/04 §11 (physical targets), docs/11 and hw/loop/results.md, docs/02 (fabric bandwidth), test CONTRACT-GOVERNOR-OVERHEAD-BOUNDED (firmware share under 0.1 percent of GPU time)")
 save(fig, "fig_sc_numbers.png")
 
 print("done")

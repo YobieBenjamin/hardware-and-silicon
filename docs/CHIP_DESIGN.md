@@ -3,7 +3,7 @@
 The narrative version is [`blog/04`](../blog/04-the-chip-that-says-no-3-the-silicon-design.md) (the action side) and
 [`blog/05`](../blog/05-the-chip-that-says-no-4-the-governor-in-the-rack.md) (the compute side and the governor in the rack).
 The silicon realization is a separate project, [safety-governor](https://github.com/YobieBenjamin/safety-governor): one
-governor per NVIDIA GPU, added through the rack's boards, with its own functional model, hypothesis suite (CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION to CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION),
+governor per NVIDIA GPU, added through the rack's boards, with its own functional model, hypothesis suite (seventeen contract tests),
 RTL and silicon plan. Placements A, B, C and E below map onto that project's tiers (rack, board-only, integrated).
 This file is the design stated as a specification: the contract, the boundary, the
 blocks, the protocol, the assumptions and the claims, in the order an implementer needs
@@ -186,7 +186,7 @@ CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION contract · CONTRACT-ATTESTATION-BIND
 crossing has an enforcement point · CONTRACT-POLICY-QUORUM-NO-ROLLBACK policy changes only with a quorum · CONTRACT-BROKER-CANNOT-PICK-RULE the broker
 cannot choose its rule or path · CONTRACT-ALARMS-ARE-MONOTONE alarms are monotone · CONTRACT-COMPARATOR-SURVIVES-COMPROMISE the comparator holds with
 every layer above it compromised · CONTRACT-ASSUMPTIONS-REGISTER-COMPLETE the assumptions register is complete · CONTRACT-OVERRIDE-SLOW-AND-LOGGED human
-override is slow and logged · CONTRACT-ZERO-PER-TOKEN-OVERHEAD overhead within target · CONTRACT-LEAKAGE-WITHIN-BUDGET permitted-channel leakage
+override is slow and logged · CONTRACT-GOVERNOR-OVERHEAD-BOUNDED overhead within target · CONTRACT-LEAKAGE-WITHIN-BUDGET permitted-channel leakage
 within budget. Falsification conditions and the phase plan: `docs/PROTOTYPING.md`.
 
 ## 10. Appendices: the message formats
