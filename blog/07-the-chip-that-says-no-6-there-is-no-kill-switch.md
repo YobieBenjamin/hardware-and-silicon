@@ -156,7 +156,7 @@ Everything above was drawings. Here is the same thing as a proof, written so tha
 
 **What the proof does not say.** It does not say the gates are in place; that is coverage, and it is work. It does not say a gate is a good gate; that is the rulebook, and it is people. It does not stop a model from talking a person into doing the deed; a person is not a dot in this graph. And it depends on its three assumptions. Anyone who can show me a single network dot that every AI on Earth depends on, including the laptop in the basement, has broken assumption 3 and I will take the post down. Nobody can, because there is no such dot. That is the point.
 
-The code that computes these cuts on a model graph, and checks itself against brute force on a small one, is `proofs/no_global_kill_switch.py` in the chip's repository. It runs in a second.
+The code that computes these cuts on a model graph, and checks itself against brute force on a small one, is `safety-governor/proofs/no_global_kill_switch.py` in the chip's repository. It runs in a second.
 
 ## The sentence
 
