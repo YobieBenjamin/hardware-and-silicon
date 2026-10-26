@@ -421,10 +421,19 @@ class PolicyGate:
                 # has since replaced does not commit, whatever the endpoint believes the epoch is
                 self._log("gate.commit", ok=False, reason="ticket.policy_stale", ticket_id=p.get("ticket_id"))
                 return False
+            # Single use at the gate, whatever the endpoint believes: a ticket commits once, so one ticket cannot produce
+            # effects at two endpoints that each keep their own used-ticket record (adversarial audit 2026-10-26; the
+            # governor model's F29 and committed-ticket record, carried over to the reference stack).
+            if self.state.consumed("commit:" + str(p.get("ticket_id"))):
+                self._log("gate.commit", ok=False, reason="ticket.already_committed", ticket_id=p.get("ticket_id"))
+                return False
             if "reservation" not in p:
+                self.state.consume("commit:" + str(p["ticket_id"]), self.clock.now())
                 self._log("gate.commit", ok=True, ticket_id=p["ticket_id"], reservation=None)
                 return True  # nothing to charge; the ticket's own checks are the endpoint's job
             ok = self.state.commit(p["budget_key"], p["reservation"], self.clock.now())
+            if ok:
+                self.state.consume("commit:" + str(p["ticket_id"]), self.clock.now())
             self._log("gate.commit", ok=ok, ticket_id=p["ticket_id"], reservation=p["reservation"], budget=p["budget_key"])
             return ok
 
