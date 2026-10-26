@@ -281,8 +281,8 @@ class AttestationVerifier:
         fw_digest = alias_p.get("fw_digest")
         if alias_p.get("svn") != report.get("svn") or alias_p.get("fw_version") != report.get("fw_version"):
             reasons.append("report.firmware_claims")
-        expected_r0 = sha256(ZERO + bytes.fromhex(fw_digest)).hex() if fw_digest else None
-        if not regs or expected_r0 is None or regs[0] != expected_r0:
+        expected_register_zero = sha256(ZERO + bytes.fromhex(fw_digest)).hex() if fw_digest else None
+        if not regs or expected_register_zero is None or regs[0] != expected_register_zero:
             reasons.append("report.registers_vs_cert")
 
         # 6. revocation
