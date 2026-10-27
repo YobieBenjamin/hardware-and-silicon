@@ -34,13 +34,13 @@ the far end verify that?*, and *can anyone prove afterwards what happened?*
    application  agent · tools · data · model
    runtime      OpenShell Gateway ─ policy (YAML→Rego) ◄── derived from ── governance-signed gate policy (L5)
                         │  prover
-                OpenShell Sandbox ──► Supervisor ──► [ supervisor middleware = L4 gate ] ──► ticket ──► endpoint
-                                        │                  attestation token (L0/L4)  ▲                │
-                                        │                  Sentry verdict (L3)  ───────┘                │
-   infrastructure  BlueField-4 / DOCA: Sentry ─ telemetry ──► SentryObserver (signed assertion)         │
-                                 ▲   quarantine ◄──────────── SentryActuator (drift decision)            │
-                   Vera CPU TEE + GPU CC attestation ──► AttestationVerifier ──► token                   │
-                   OCSF audit  ◄───────────────────────── to_ocsf(chain entry)  ◄── signed, Merkle-checkpointed log
+                OpenShell Sandbox ──► Supervisor ──► [ supervisor middleware = L4 (Control Plane) gate ] ───────────────────► ticket ──► endpoint
+                                        │                  attestation token: L0 (Silicon Root), L4 (Control Plane)    ▲                │
+                                        │                  Sentry verdict: L3 (Observers)   ───────────────────────────┘                │
+   infrastructure  BlueField-4 / DOCA: Sentry ─ telemetry ──► SentryObserver (signed assertion)                                         │
+                                 ▲   quarantine ◄──────────── SentryActuator (drift decision)                                           │
+                   Vera CPU TEE + GPU CC attestation ──► AttestationVerifier ──► token                                                  │
+                   OCSF audit  ◄───────────────────────── to_ocsf(chain entry)  ◄─────────────────────────────────── signed, Merkle-checkpointed log
 ```
 
 | Platform point | This repo | Module |

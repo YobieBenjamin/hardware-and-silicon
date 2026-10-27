@@ -22,27 +22,27 @@ and the early-warning observers (`safety`, Layer 3).
 ## The layer model
 
 ```
- L5  governance root     The policy authority. Signs reference values, revocation lists and the
+ L5 (Governance Root)    The policy authority. Signs reference values, revocation lists and the
                          gate policy. Deliberately not the silicon vendor: the party that decides
                          what may run a consequential workload is not the party that sold the chip.
 
- L4  control plane       Verifier (evidence → attestation token) and gate (token + policy + witnesses
+ L4 (Control Plane)      Verifier (evidence → attestation token) and gate (token + policy + witnesses
                          → one-time action ticket) and audit trail. Default deny.
 
- L3  observers           Early-warning signals about a specific pending action, signed by observer
+ L3 (Observers)          Early-warning signals about a specific pending action, signed by observer
      (safety repo)       keys the gate trusts. The gate consumes verdicts; it never computes them.
 
- L2  provenance          Is this content exactly what an attested model produced? Signed registry
+ L2 (Provenance)         Is this content exactly what an attested model produced? Signed registry
      (Watermark repo)    verdicts: exact / tampered / unknown. The gate consumes; it never detects.
 
- L1  measured runtime    Firmware, driver, container image, model weights. Not built here, but
+ L1 (Measured Runtime)   Firmware, driver, container image, model weights. Not built here, but
                          measured here: its digest is what the policy binds capabilities to.
 
- L0  silicon root        Fused unique device secret, anti-rollback counter, extend-only measurement
+ L0 (Silicon Root)       Fused unique device secret, anti-rollback counter, extend-only measurement
                          registers, DICE key derivation, quote engine, hardware RNG, monotonic clock.
 ```
 
-Two instances of L0 make a node: a CPU TEE and an accelerator. The accelerator's
+Two instances of L0 (Silicon Root) make a node: a CPU TEE and an accelerator. The accelerator's
 quote is bound inside the TEE's quote (`user_data.gpu_evidence`), which is the
 composite-attestation pattern of NVIDIA confidential computing: the TEE vouches
 that *this* GPU is the one attached to it.
@@ -59,7 +59,7 @@ computing are the Layer 0 evidence sources. `docs/NVIDIA.md` has the mapping;
 | Who | Holds | Trusts |
 |---|---|---|
 | Verifier | its own signing key | vendor CAs (device certificates), governance root (reference values, revocations) |
-| Gate | its own signing key (tickets, audit) | verifier (tokens), governance root (policy), observer keys (L3: the safety repo's observer, NVIDIA Sentry), registry keys (L2), approver keys (humans) |
+| Gate | its own signing key (tickets, audit) | verifier (tokens), governance root (policy), observer keys (L3 (Observers): the safety repo's observer, NVIDIA Sentry), registry keys (L2 (Provenance)), approver keys (humans) |
 | Supervisor middleware | nothing of its own | the gate; the sandbox→host binding it was given; Sentry's actuator for quarantine |
 | Endpoint | nothing | gate (tickets) |
 | Anyone with the gate's public key | none | can verify the whole audit trail offline |
@@ -97,8 +97,8 @@ requests that are already attested and granted; budget and human holds last.
 2. granted?      a signed, default-deny policy is loaded · a rule for (measurement, action) exists
                  · the parameters satisfy that rule's constraints (several grants per action are
                  allowed; the request takes the first it fits)
-3. witnessed?    rule says observer → a fresh L3 assertion about *this request hash* under max_risk
-                 rule says provenance → a fresh L2 assertion that *this content* is exact
+3. witnessed?    rule says observer → a fresh L3 (Observers) assertion about *this request hash* under max_risk
+                 rule says provenance → a fresh L2 (Provenance) assertion that *this content* is exact
 4. budget/human? rate limit window · shared budget reserved (committed + reserved + amount ≤ limit,
                  under the same lock as the replay check) · human → HOLD until a registered approver
                  signs (hold id + request hash); otherwise ALLOW

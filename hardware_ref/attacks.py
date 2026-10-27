@@ -8,8 +8,9 @@ attack or ``"allowed"`` for a baseline (the legitimate operations the stack
 must *not* refuse; a gate that denies everything would pass every attack
 and be useless).
 
-Layers: L0 silicon root, L2/L3 lane interfaces, L4 control plane (token,
-policy, holds), EP endpoints/tickets, AU audit trail, L5 governance.
+Groups (the prefix of each catalogue key): L0 (Silicon Root); L2 (Provenance) and L3 (Observers), the lane
+interfaces; L4 (Control Plane): token, policy, holds; L5 (Governance Root); EP endpoints and tickets; AU audit
+trail. A key such as L4.request_replay is a machine identifier; its prefix is the layer, L4 (Control Plane), as every report writes it.
 """
 from __future__ import annotations
 
@@ -132,7 +133,7 @@ def _b_audit(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 0: silicon root / attestation
+# L0 (Silicon Root): attestation
 # ---------------------------------------------------------------------------------------
 
 
@@ -225,7 +226,7 @@ def _a_ref_forged(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 5 / Layer 4: policy
+# L5 (Governance Root) and L4 (Control Plane): policy
 # ---------------------------------------------------------------------------------------
 
 
@@ -330,7 +331,7 @@ def _a_req_replay(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Lane 3 interface: observer assertions
+# L3 (Observers) interface lane: observer assertions
 # ---------------------------------------------------------------------------------------
 
 
@@ -371,7 +372,7 @@ def _a_obs_high(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Lane 2 interface: provenance assertions
+# L2 (Provenance) interface lane: provenance assertions
 # ---------------------------------------------------------------------------------------
 
 
@@ -409,7 +410,7 @@ def _a_prov_forged(node: Node):
 
 
 # ---------------------------------------------------------------------------------------
-# Layer 4: human holds
+# L4 (Control Plane): human holds
 # ---------------------------------------------------------------------------------------
 
 LARGE = {"amount": 25000, "currency": "USD", "destination": "acct-654321"}

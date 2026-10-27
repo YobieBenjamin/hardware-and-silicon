@@ -26,19 +26,19 @@ from .system import API_HOST, CPU_FW, GPU_FW, build_node, build_oasp_node
 LAYERS = """\
 Layer model (three repos, three lanes)
 
-  L5  governance root      signs reference values, revocations, gate policy      hardware (this repo)
-  L4  control plane        verifier → policy gate → one-time tickets → audit     hardware (this repo)
-  L3  observers            early-warning signals about a pending action          safety  (separate repo)
-  L2  provenance           watermark · hardened detector · signed registry       Watermark (separate repo)
-  L1  measured runtime     firmware, driver, container, model weights             measured here, built elsewhere
-  L0  silicon root         fused secret · anti-rollback · measurement registers   hardware (this repo)
+  L5 (Governance Root)     signs reference values, revocations, gate policy      hardware (this repo)
+  L4 (Control Plane)       verifier → policy gate → one-time tickets → audit     hardware (this repo)
+  L3 (Observers)           early-warning signals about a pending action          safety  (separate repo)
+  L2 (Provenance)          watermark · hardened detector · signed registry       Watermark (separate repo)
+  L1 (Measured Runtime)    firmware, driver, container, model weights             measured here, built elsewhere
+  L0 (Silicon Root)        fused secret · anti-rollback · measurement registers   hardware (this repo)
                            · DICE key derivation · quote engine
 
 On the NVIDIA Open Agent Safety Platform (docs/NVIDIA.md):
-  OpenShell sandbox + supervisor     application / runtime layer      NVIDIA (Apache 2.0)
-  this gate as supervisor middleware L4 on the request path           hardware (oasp.py)
-  Sentry on BlueField-4 / DOCA       L3 witness + quarantine actuator  NVIDIA reference design
-  Vera CPU TEE + GPU CC attestation  L0 evidence                       NVIDIA silicon
+  OpenShell sandbox + supervisor     application / runtime layer                   NVIDIA (Apache 2.0)
+  this gate as supervisor middleware L4 (Control Plane) on the request path        hardware (oasp.py)
+  Sentry on BlueField-4 / DOCA       L3 (Observers) witness + quarantine actuator  NVIDIA reference design
+  Vera CPU TEE + GPU CC attestation  L0 (Silicon Root) evidence                    NVIDIA silicon
 
 Lanes couple only through signed assertions (docs/LANES.md). Nothing here
 imports from the other two repos.

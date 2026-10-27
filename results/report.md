@@ -1,12 +1,12 @@
 # Sweep report
 
-`hardware_ref 0.2.0` · Python 3.13.16 · Linux-6.18.44-fc-v139-x86_64-with-glibc2.39
+`hardware_ref 0.2.0` · Python 3.13.16 · Linux-6.18.44-fc-v153-x86_64-with-glibc2.39
 
 **Attacks blocked: 75/75 · Baselines allowed: 12/12 · Result: PASS**
 
 Every entry runs against a freshly built node. *Expected* is what the stack must do; *observed* is the reason code it actually produced. Baselines are legitimate operations that must go through; they are what stops a gate from passing by denying everything.
 
-## Layer 0 · silicon root / attestation
+## L0 (Silicon Root) · attestation
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 | `L0.nonce_foreign` | Attester picks its own nonce instead of the verifier's challenge | blocked | `rejected: nonce.unknown` | ✅ |
 | `L0.gpu_swap` | Clean CPU quote paired with a quote from a different, individually clean GPU | blocked | `rejected: binding.gpu_not_bound_to_cpu` | ✅ |
 
-## Lane 2 · provenance interface
+## L2 (Provenance) · interface lane
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|
@@ -32,7 +32,7 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 | `L2.provenance_content_swap` | An 'exact' assertion for one body attached to a request carrying a different body | blocked | `deny: provenance.content_mismatch` | ✅ |
 | `L2.provenance_forged` | 'exact' assertion signed by a key that is not the registry's | blocked | `deny: provenance.signature` | ✅ |
 
-## Lane 3 · observer interface
+## L3 (Observers) · interface lane
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|
@@ -42,7 +42,7 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 | `L3.observer_subject_swap` | Genuine low-risk verdict about a different request attached to this one | blocked | `deny: observer.subject_mismatch` | ✅ |
 | `L3.observer_high_risk` | Observer flags the action (risk 0.95); policy threshold is 0.3 | blocked | `deny: observer.risk_above_threshold` | ✅ |
 
-## Layer 4 · control plane
+## L4 (Control Plane)
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|
@@ -68,7 +68,7 @@ Every entry runs against a freshly built node. *Expected* is what the stack must
 | `L4.approval_replay` | A valid approval is submitted a second time to mint a second ticket | blocked | `deny: approval.unknown_hold` | ✅ |
 | `L4.approval_expired` | Approval arrives after the hold's lifetime | blocked | `deny: approval.expired` | ✅ |
 
-## Layer 5 · governance root
+## L5 (Governance Root)
 
 | Entry | What happens | Expected | Observed | Result |
 |---|---|---|---|---|

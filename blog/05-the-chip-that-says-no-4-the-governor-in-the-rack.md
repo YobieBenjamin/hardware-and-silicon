@@ -112,13 +112,13 @@ Who may do what to whom:
 
 | Layer | Can command | Can stop | Signs | Can never |
 | --- | --- | --- | --- | --- |
-| Model and classifiers (L1, L3) | Nothing | Raise an alarm | Nothing | Clear an alarm; touch a rule; act directly |
+| Model and classifiers: L1 (Measured Runtime), L3 (Observers) | Nothing | Raise an alarm | Nothing | Clear an alarm; touch a rule; act directly |
 | Broker | Submit typed requests | Decline to submit | Requests, as a verified workload | Act without a ticket; choose its own rule or lane |
 | Sandbox (OpenShell) | File, network and device access of the process | Deny access | Nothing | Set its own policy (that authority is the gate's) |
 | Policy controller | Permissions; halt and throttle lines | Any transfer at an enforcement point; the GPU | Device-provenance records, log checkpoints | Run without a valid heartbeat; change its own policy |
-| Confidential compute (L1) | Memory firewall; encrypted links | Host access to GPU memory | Attestation reports | Release weights without attestation |
+| Confidential compute, L1 (Measured Runtime) | Memory firewall; encrypted links | Host access to GPU memory | Attestation reports | Release weights without attestation |
 | Silicon root (L0) | Which firmware boots | Boot | Quotes | Be updated in the field |
-| Gate (L4) | Tickets; reservations; holds | Any request | Tickets, epochs, the audit trail | Allow without a rule; clear a witness; change the rulebook |
+| Gate, L4 (Control Plane) | Tickets; reservations; holds | Any request | Tickets, epochs, the audit trail | Allow without a rule; clear a witness; change the rulebook |
 | Endpoint comparator | The release line, the signing key, the motor | The action itself | Nothing | Act without a committed ticket, a current epoch, and consistent inputs |
 | Governance root and approvers (L5) | Rulebook, allowlists, revocations, overrides | Everything, slowly | Policy images, approvals, heartbeats | Override silently or quickly |
 
@@ -232,25 +232,25 @@ Seventy-five attacks blocked with the predicted reason code, twelve baselines al
 
 | Id | Claim | Falsified if |
 | --- | --- | --- |
-| H0 | Within the declared boundary, no protected operation executes without a fresh authorization bound to that exact operation | Any attack in the EP or TX blocks passes at any phase |
-| H1 | Attestation binds permissions to firmware, model manifest and policy | A modified firmware, a swapped model or a changed policy leaves the fingerprint or the epoch unchanged |
-| H2 | Every boundary crossing in the domain has an enforcement point | Any bytes leave over any listed path without a permission, or a path is found that the list missed (Phase 3) |
-| H3 | Policy cannot change without a quorum | Any unquorumed change succeeds with host root |
-| H4 | The broker cannot choose its own rule or lane | Any requester-supplied label changes a decision |
-| H5 | Alarms are monotone | Any alarm cleared without a rule or a key |
-| H6 | The comparator holds with every layer above it compromised | A release or a commit succeeds with the gate, broker and runtime under red-team control |
-| H7 | The assumptions register is complete for the deployment | An input the gate relied on turns out to have no authoritative source, no freshness bound, or no conflict rule |
-| H8 | Human override is slow and fully logged | Override latency below the policy floor, or any override missing from the log |
-| H9 | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
-| H10 | Permitted channels leak less than the threat model's budget | Model extraction through the output channel exceeds the query budget without tripping a limit |
-| H11 | A halt reaches every GPU in the rack within the bound, fail-safe | Any GPU keeps running after a halt or a loop break, or any governor clears alone |
-| H12 | Only roster members speak on the fabric, and only once per message | A rogue or replayed message is acted on; a forged heartbeat keeps a governor alive |
-| H13 | Shared budgets cannot be overspent across governors | Concurrent reservations exceed the limit |
-| H14 | Partitions and epoch changes end in safe states, never stale ones | A cut-off segment keeps running; an epoch applies unevenly |
-| H15 | Production silicon has no debug path; tamper leaves nothing to steal | A debug access succeeds in production, or keys survive a tamper event |
-| H16 | The levers work without the GPU's cooperation | A GPU that ignores software keeps running after the governor asserts its levers |
+| CONTRACT-FRESH-AUTHORIZATION-PER-OPERATION | Within the declared boundary, no protected operation executes without a fresh authorization bound to that exact operation | Any attack in the EP or TX blocks passes at any phase |
+| CONTRACT-ATTESTATION-BINDS-PERMISSIONS | Attestation binds permissions to firmware, model manifest and policy | A modified firmware, a swapped model or a changed policy leaves the fingerprint or the epoch unchanged |
+| CONTRACT-EVERY-CROSSING-GOVERNED | Every boundary crossing in the domain has an enforcement point | Any bytes leave over any listed path without a permission, or a path is found that the list missed (Phase 3) |
+| CONTRACT-POLICY-QUORUM-NO-ROLLBACK | Policy cannot change without a quorum | Any unquorumed change succeeds with host root |
+| CONTRACT-BROKER-CANNOT-PICK-RULE | The broker cannot choose its own rule or lane | Any requester-supplied label changes a decision |
+| CONTRACT-ALARMS-ARE-MONOTONE | Alarms are monotone | Any alarm cleared without a rule or a key |
+| CONTRACT-COMPARATOR-SURVIVES-COMPROMISE | The comparator holds with every layer above it compromised | A release or a commit succeeds with the gate, broker and runtime under red-team control |
+| CONTRACT-ASSUMPTIONS-REGISTER-COMPLETE | The assumptions register is complete for the deployment | An input the gate relied on turns out to have no authoritative source, no freshness bound, or no conflict rule |
+| CONTRACT-OVERRIDE-SLOW-AND-LOGGED | Human override is slow and fully logged | Override latency below the policy floor, or any override missing from the log |
+| CONTRACT-GOVERNOR-OVERHEAD-BOUNDED | The controller costs under one percent of throughput; the protected deployment's tail latency is bounded | Either measurement exceeds its target |
+| CONTRACT-LEAKAGE-WITHIN-BUDGET | Permitted channels leak less than the threat model's budget | Model extraction through the output channel exceeds the query budget without tripping a limit |
+| CONTRACT-HALT-REACHES-EVERY-GPU | A halt reaches every GPU in the rack within the bound, fail-safe | Any GPU keeps running after a halt or a loop break, or any governor clears alone |
+| CONTRACT-ONLY-ROSTER-SPEAKS-ONCE | Only roster members speak on the fabric, and only once per message | A rogue or replayed message is acted on; a forged heartbeat keeps a governor alive |
+| CONTRACT-SHARED-BUDGET-NO-OVERSPEND | Shared budgets cannot be overspent across governors | Concurrent reservations exceed the limit |
+| CONTRACT-PARTITIONS-END-SAFE | Partitions and epoch changes end in safe states, never stale ones | A cut-off segment keeps running; an epoch applies unevenly |
+| CONTRACT-NO-DEBUG-IN-PRODUCTION | Production silicon has no debug path; tamper leaves nothing to steal | A debug access succeeds in production, or keys survive a tamper event |
+| CONTRACT-LEVERS-WITHOUT-GPU-COOPERATION | The levers work without the GPU's cooperation | A GPU that ignores software keeps running after the governor asserts its levers |
 
-The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. H0 to H10 run today in this repository; H11 to H16, and H0 to H10 again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
+The catalogue is the constant across all three phases. A phase is finished when the same sweep passes against that phase's artefact. The eleven contract tests on authorization, attestation, crossings, policy, brokering, alarms, the comparator, assumptions, overrides, overhead and leakage run today in this repository; the six on halts, the roster, shared budgets, partitions, debug and levers, and the first eleven again against the governor model, run in [safety-governor](https://github.com/YobieBenjamin/safety-governor) and are printed as a matrix across three tiers of the design.
 
 ## Tightened claims
 
@@ -263,11 +263,11 @@ Read this as a shopping list. The second column is what you can download or buy 
 | Piece | Exists today | Missing | Who builds it |
 | --- | --- | --- | --- |
 | Silicon root (L0) | GPU boot ROM, fused keys, measured firmware; the DPU's root; [OpenTitan](https://opentitan.org/), [Pluton](https://learn.microsoft.com/en-us/windows/security/hardware-security/pluton/microsoft-pluton-security-processor), [Titan](https://cloud.google.com/blog/products/identity-security/titan-in-depth-security-in-plaintext) | Public verifiability of the measurement chain | Chip vendors; open-silicon projects |
-| Confidential compute (L1) | [Hopper and Blackwell confidential computing](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/), [attestation](https://github.com/NVIDIA/nvtrust), TEE-I/O on Blackwell; CPU TEEs | Model manifest and policy digest in the fingerprint by default; one report format across vendors | NVIDIA, AMD, Intel; standards bodies |
+| Confidential compute, L1 (Measured Runtime) | [Hopper and Blackwell confidential computing](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/), [attestation](https://github.com/NVIDIA/nvtrust), TEE-I/O on Blackwell; CPU TEEs | Model manifest and policy digest in the fingerprint by default; one report format across vendors | NVIDIA, AMD, Intel; standards bodies |
 | Policy controller + enforcement points | The [Safety Governor](https://github.com/YobieBenjamin/safety-governor) design: functional model, hypothesis suite, RTL for the hard-core blocks, a LibreLane flow for a sky130 shuttle, the rack integration reference; the closest shipping analogs are the GSP, Pluton, BlueField-4's own root, and the hardware-governance proposals from [CNAS](https://www.cnas.org/publications/reports/secure-governable-chips) and the [flexHEG](https://arxiv.org/abs/2506.15093) group | The silicon: a shuttle prototype, then the product die, then the rack module; the firmware and software asks to NVIDIA; the in-GPU checkers | This project with a board partner; NVIDIA for the asks; chip vendors with regulators for the checkers |
 | Runtime sandbox | [NVIDIA OpenShell](https://github.com/NVIDIA/OpenShell) (Landlock, egress proxy, credential substitution) | Policy-setting authority moved to the gate; attestation of the policy image | NVIDIA, Linux community |
 | Broker | OpenShell supervisor middleware with the gate on its path ([`oasp.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/oasp.py)) | Workload attestation of the serving stack; schema discipline across agent frameworks | AI labs, agent-platform vendors |
-| Gate (L4) | [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py): rulebook, witnesses, budgets, holds, tickets, epochs, durable state | The same logic as a CAM and comparators on a DPU (Phase 2), then in the GPU (Phase 3) | This repo, then vendors |
+| Gate, L4 (Control Plane) | [`gate.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/gate.py), [`ledger.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/ledger.py): rulebook, witnesses, budgets, holds, tickets, epochs, durable state | The same logic as a CAM and comparators on a DPU (Phase 2), then in the GPU (Phase 3) | This repo, then vendors |
 | Endpoint comparator | Drone no-fly zones, fuze safety interlocks, process-plant safety systems, HSMs; [`endpoints.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/endpoints.py) as the functional reference | Ticket verification, epoch binding, durable used-ticket sets and heartbeat in guidance and payment silicon; per-application safe moves | Effector vendors: fintech, defense, robotics |
 | Governance root and approvers (L5) | [`attest.py`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/hardware_ref/attest.py); two-person rules; approval workflows | k-of-n key ceremonies with custody split across reference values, revocations and policy | Operators, regulators |
 | Observer lane (L3) | [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation); [NVIDIA Sentry](https://nvidianews.nvidia.com/news/open-agent-safety-platform) | Probe heads on isolated compute with their own fingerprint | Labs; NVIDIA |
@@ -324,7 +324,7 @@ Standards and building blocks:
 This repository:
 
 - [`docs/CHIP_DESIGN.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/CHIP_DESIGN.md), the design as a specification; [`docs/PROTOTYPING.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/PROTOTYPING.md), the experiment program; [`docs/REVIEW-2026-10.md`](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/docs/REVIEW-2026-10.md), the review and what changed.
-- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite H0 to H16, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
+- [Safety Governor](https://github.com/YobieBenjamin/safety-governor): the design, the functional model, the hypothesis suite of seventeen contract tests, the RTL, the LibreLane flow, the rack integration reference, and a plain-English walkthrough of the whole design with figures. [OpenTitan](https://opentitan.org/), the open silicon root of trust the governor is built on.
 - The companion lanes: [`autonomic-graph-regulation`](https://github.com/YobieBenjamin/autonomic-graph-regulation) (observers) and [`Watermark`](https://github.com/YobieBenjamin/Watermark) (provenance).
 - [Part 1](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/02-the-chip-that-says-no-1-plain-english.md) and [Part 2](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/03-the-chip-that-says-no-2-with-the-technical-detail.md) of this series, and [the first post](https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/blog/01-a-multi-layer-approach-to-ai-safety.md), which laid out the layer model.
 

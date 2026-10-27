@@ -21,12 +21,14 @@ from .attacks import CATALOGUE, Attack
 from .clock import SimClock
 from .system import build_node
 
+# Each catalogue key starts with its group: a reference-stack layer, L0 (Silicon Root) to L5 (Governance Root) (LABELS.md rule
+# on reference-stack layers), or a named group (EP, AU, NV, TX). Every report heads a group with this label.
 LAYER_NAMES = {
-    "L0": "Layer 0 · silicon root / attestation",
-    "L2": "Lane 2 · provenance interface",
-    "L3": "Lane 3 · observer interface",
-    "L4": "Layer 4 · control plane",
-    "L5": "Layer 5 · governance root",
+    "L0": "L0 (Silicon Root) · attestation",
+    "L2": "L2 (Provenance) · interface lane",
+    "L3": "L3 (Observers) · interface lane",
+    "L4": "L4 (Control Plane)",
+    "L5": "L5 (Governance Root)",
     "EP": "Endpoints · action tickets",
     "AU": "Audit trail",
     "NV": "NVIDIA OASP path · OpenShell supervisor + Sentry",

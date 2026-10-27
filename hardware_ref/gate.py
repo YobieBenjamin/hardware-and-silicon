@@ -121,8 +121,13 @@ class PolicyGate:
         name: str = "gate",
         key: SigningKey | None = None,
         store: StateStore | None = None,
+        default_endpoint: str = "endpoint",
     ):
         self.name = name
+        # Every ticket names exactly one endpoint (adversarial audit 3, porting the governor's F29 binding): the rule's
+        # own endpoint, or this gate's default endpoint when the rule names none. An endpoint refuses any ticket that
+        # does not name it, so a ticket minted for one payment service cannot be spent at another that holds the key.
+        self.default_endpoint = default_endpoint
         self.verifier = verifier
         self.governance = governance
         self.clock = clock
@@ -385,8 +390,7 @@ class PolicyGate:
             "issued_at": now,
             "expires_at": now + self.ticket_ttl,
         }
-        if "endpoint" in rule:
-            payload["endpoint"] = rule["endpoint"]
+        payload["endpoint"] = rule.get("endpoint") or self.default_endpoint
         budget = rule.get("budget")
         if budget is not None:
             amount = core["params"].get(budget["param"])
@@ -421,10 +425,19 @@ class PolicyGate:
                 # has since replaced does not commit, whatever the endpoint believes the epoch is
                 self._log("gate.commit", ok=False, reason="ticket.policy_stale", ticket_id=p.get("ticket_id"))
                 return False
+            # Single use at the gate, whatever the endpoint believes: a ticket commits once, so one ticket cannot produce
+            # effects at two endpoints that each keep their own used-ticket record (adversarial audit 2026-10-26; the
+            # governor model's F29 and committed-ticket record, carried over to the reference stack).
+            if self.state.consumed("commit:" + str(p.get("ticket_id"))):
+                self._log("gate.commit", ok=False, reason="ticket.already_committed", ticket_id=p.get("ticket_id"))
+                return False
             if "reservation" not in p:
+                self.state.consume("commit:" + str(p["ticket_id"]), self.clock.now())
                 self._log("gate.commit", ok=True, ticket_id=p["ticket_id"], reservation=None)
                 return True  # nothing to charge; the ticket's own checks are the endpoint's job
             ok = self.state.commit(p["budget_key"], p["reservation"], self.clock.now())
+            if ok:
+                self.state.consume("commit:" + str(p["ticket_id"]), self.clock.now())
             self._log("gate.commit", ok=ok, ticket_id=p["ticket_id"], reservation=p["reservation"], budget=p["budget_key"])
             return ok
 

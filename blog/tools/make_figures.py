@@ -899,7 +899,7 @@ box(ax, 7.3, 2.6, 2.4, 1.4, "the device that acts", ["payment switch, release li
 arrow(ax, (6.5, 3.3), (7.3, 3.3), color=ACCENT, lw=1.6); ax.text(6.9, 3.38, "ticket", fontsize=6.8, color=ACCENT, ha="center", va="bottom")
 box(ax, 7.3, 1.45, 2.4, 0.95, "never touched", ["the model's tokens, the weights' meaning,", "the NVLink data path, the training loop"], kind="plain", title_size=8.4, line_size=7.0)
 tag(ax, 0.3, 1.1, "The picture: a circuit breaker and a customs officer in one small box, one per room. The breaker cannot read the mail. It can cut the power, and it can refuse to stamp the form.")
-note(ax, 0.4, "Sources: docs/01 (where the governor lives), docs/03 (the plugs), docs/04 §5 (the ticket); the retrofit case is experiment P2")
+note(ax, 0.4, "Sources: docs/01 (where the governor lives), docs/03 (the plugs), docs/04 §5 (the ticket); the retrofit case is experiment WAVE-EXIT-REGISTER")
 save(fig, "fig_sc_slot.png")
 
 # ---------------------------------------------------------------- 14. one tray
@@ -925,7 +925,7 @@ box(ax, 7.4, 2.75, 2.3, 1.25, "the DPU at the edge", ["flows open only under a t
 arrow(ax, (6.65, 2.6), (7.4, 3.1), color=ACCENT, lw=1.3)
 box(ax, 7.4, 1.4, 2.3, 1.1, "the tray's BMC", ["still manages the board;", "it reads through the governor"], kind="plain", title_size=8.4, line_size=6.8)
 tag(ax, 0.3, 1.1, "The picture: a hotel key card. Your card opens your door and the gym, for the nights you booked, and nothing else. A card that was never issued opens nothing, however hard you push.")
-note(ax, 0.4, "Sources: docs/02 (roster formation), docs/03 (NVSwitch management out of band through NSM, DOCA on the DPU), test H2")
+note(ax, 0.4, "Sources: docs/02 (roster formation), docs/03 (NVSwitch management out of band through NSM, DOCA on the DPU), test CONTRACT-EVERY-CROSSING-GOVERNED")
 save(fig, "fig_sc_tray.png")
 
 # ---------------------------------------------------------------- 15. the two wires through a rack
@@ -985,7 +985,7 @@ ax.text(gx0 + gw / 2, gy0 - 0.33, "ring B, counter-clockwise", fontsize=5.8, col
 box(ax, 0.3, 0.78, 4.6, 0.86, "what the loop does", ["a live-zero current: a dead wire reads as zero, and zero means stop; worst case 317 us", "to the last of 72 governors (1 ms bound, 39 simulations); reclosed only by a signed CLEAR"], kind="tint", title_size=7.4, line_size=6.2, pad=0.08)
 box(ax, 5.1, 0.78, 4.6, 0.86, "what the fabric carries", ["every tray hangs on both rings: quotes, rosters, heartbeats, editions, budget reservations,", "alarms, checkpoint heads; kilobytes per second per governor; a stranger's, an old or a stale note is binned"], kind="main", title_size=7.4, line_size=6.0, pad=0.08)
 tag(ax, 0.3, 0.62, "The picture: a fire-alarm loop and an intercom. The loop rings every bell the instant any station is pulled and reports a cut wire at once; this loop goes further, a cut halts. The intercom carries who pulled it and which rulebook is in force.")
-note(ax, 0.2, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests H11 and H12")
+note(ax, 0.2, "Sources: docs/02 §1 and §2, docs/11 and hw/loop/results.md (39 ngspice runs), hw/pcb/rack-integration.md §4, tests CONTRACT-HALT-REACHES-EVERY-GPU and CONTRACT-ONLY-ROSTER-SPEAKS-ONCE")
 save(fig, "fig_sc_wires.png")
 
 # ---------------------------------------------------------------- 16. rosters
@@ -1003,7 +1003,7 @@ for i, (h_, ls_, k_) in enumerate(steps_):
 box(ax, 0.3, 1.15, 4.6, 0.95, "a GPU that fails attestation", ["cannot produce a valid quote, so it is simply absent from the roster;", "nothing it says afterwards is accepted, and its presence is logged"], kind="tint", title_size=8.2, line_size=7.0)
 box(ax, 5.1, 1.15, 4.6, 0.95, "a forged roster", ["dropped and logged: members check the leader's signature and the", "quotes, they do not take the leader's word; the roster survives a power cycle"], kind="plain", title_size=8.2, line_size=7.0)
 tag(ax, 0.3, 0.85, "The picture: no badge, no seat on the bus, and nobody listens to you shouting from the parking lot.")
-note(ax, 0.4, "Sources: docs/02 (roster formation); govsim/cluster.py; test H12 (fabric authentication)")
+note(ax, 0.4, "Sources: docs/02 (roster formation); govsim/cluster.py; test CONTRACT-ONLY-ROSTER-SPEAKS-ONCE (fabric authentication)")
 save(fig, "fig_sc_roster.png")
 
 # ---------------------------------------------------------------- 17. the edition change, cluster-atomic
@@ -1024,7 +1024,7 @@ for i, (h_, b_, ec_, fc_) in enumerate(rows_):
     ax.text(0.75, y + 0.13, h_, fontsize=8.0, color=INK, fontweight="bold", va="center")
     ax.text(0.75, y - 0.1, b_, fontsize=7.2, color=QUIET, va="center")
 tag(ax, 0.3, 0.95, "The picture: the new edition of the rulebook is handed out, everyone initials receipt, and the manager says \"from now\" to those who did. Anyone who did not initial, or initialled and then missed the word, is sent home, not left working from the old book.")
-note(ax, 0.38, "Sources: docs/02 (epoch change, cluster-atomic; fabric.epoch_deadline_s = 10 s); proofs/core_invariants.py P4, P8, P9; tests H3 and H12")
+note(ax, 0.38, "Sources: docs/02 (epoch change, cluster-atomic; fabric.epoch_deadline_s = 10 s); proofs/core_invariants.py INVARIANT-TICKET-EDITION-NOT-NEWER, INVARIANT-EDITION-ONLY-MOVES-FORWARD, INVARIANT-EDITION-CHANGE-NEEDS-QUORUM; tests CONTRACT-POLICY-QUORUM-NO-ROLLBACK and CONTRACT-ONLY-ROSTER-SPEAKS-ONCE")
 save(fig, "fig_sc_edition.png")
 
 # ---------------------------------------------------------------- 18. the heartbeat and a partition
@@ -1048,7 +1048,7 @@ ax.text(8.4, 3.0, "no valid heartbeat arrives; nothing here\ncan forge the autho
 box(ax, 0.3, 1.1, 4.55, 1.3, "the segment with the authority", ["keeps running, rebuilds its roster without the others;", "an over-long window signed by a careless authority is", "clamped, so nobody is kept alive longer than policy allows"], kind="main", title_size=8.4, line_size=7.0)
 box(ax, 5.15, 1.1, 4.55, 1.3, "the segment without it", ["throttles, then halts at expiry on its own timers;", "a replayed old heartbeat fails on the sequence number", "and the window; a rogue box on the wire is never on a roster"], kind="tint", title_size=8.4, line_size=7.0)
 tag(ax, 0.3, 0.85, "The picture: a dead man's switch. The train runs while the driver holds the handle. Nobody has to send a stop; letting go is the stop, and a cut cable lets go.")
-note(ax, 0.38, "Sources: docs/02 (heartbeat fan-out; partitions and failure); tests H12 and H14; proofs P6 and P7 (fail closed, no ticket without a heartbeat)")
+note(ax, 0.38, "Sources: docs/02 (heartbeat fan-out; partitions and failure); tests CONTRACT-ONLY-ROSTER-SPEAKS-ONCE and CONTRACT-PARTITIONS-END-SAFE; proofs INVARIANT-FAIL-CLOSED-WITHOUT-HEARTBEAT and INVARIANT-NO-TICKET-WHILE-HALTED (fail closed, no ticket without a heartbeat)")
 save(fig, "fig_sc_heartbeat.png")
 
 # ---------------------------------------------------------------- 19. one owner per budget, and linked logs
@@ -1070,7 +1070,7 @@ for i in range(4):
     if i < 3: arrow(ax, (x + 0.75, 2.5), (x + 0.95, 2.5), color=TINT, lw=1.0, style="<|-|>")
 ax.text(7.85, 2.15, "hash-chained, signed checkpoints: rewriting one history\nmeans rewriting the neighbours', and theirs, outward", fontsize=6.6, color=QUIET, ha="center", va="top")
 tag(ax, 0.3, 1.15, "The picture: one cashier per cash drawer; a second cashier does not guess what is in it. And each security office writes the last line of the neighbours' log books into its own.")
-note(ax, 0.4, "Sources: docs/02 (shared budgets: budget_owners in the policy image; cross-linked logs); tests H13 and the checkpoint tests in H12")
+note(ax, 0.4, "Sources: docs/02 (shared budgets: budget_owners in the policy image; cross-linked logs); tests CONTRACT-SHARED-BUDGET-NO-OVERSPEND and the checkpoint tests in CONTRACT-ONLY-ROSTER-SPEAKS-ONCE")
 save(fig, "fig_sc_budget.png")
 
 # ---------------------------------------------------------------- 20. many sites
@@ -1125,7 +1125,7 @@ for i, (a_, b_, c_) in enumerate(rows_):
     ax.text(6.1, y - 0.22, c_, fontsize=7.2, color=TINT if i == 0 else ACCENT, va="center")
     y -= 0.5
 tag(ax, 0.3, 0.85, "The picture: a city does not get one giant smoke detector when it grows. It gets a detector in every room, a loop on every floor, a panel in every building and one fire code. Each piece is the same size as it ever was.")
-note(ax, 0.38, "Sources: docs/04 §11 (physical targets), docs/11 and hw/loop/results.md, docs/02 (fabric bandwidth), test H9 (firmware share under 0.1 percent of GPU time)")
+note(ax, 0.38, "Sources: docs/04 §11 (physical targets), docs/11 and hw/loop/results.md, docs/02 (fabric bandwidth), test CONTRACT-GOVERNOR-OVERHEAD-BOUNDED (firmware share under 0.1 percent of GPU time)")
 save(fig, "fig_sc_numbers.png")
 
 print("done")

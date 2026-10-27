@@ -92,6 +92,11 @@ def validate_policy(policy: Any) -> dict:
                 raise PolicyError(f"rule {r['id']}: budget needs key, param, limit, window_s")
             if not (isinstance(b["limit"], (int, float)) and b["limit"] >= 0 and isinstance(b["window_s"], (int, float)) and b["window_s"] > 0):
                 raise PolicyError(f"rule {r['id']}: budget limit/window must be non-negative numbers")
+            c = (r.get("constraints") or {}).get(b["param"])
+            if not isinstance(c, dict) or not isinstance(c.get("max"), (int, float)) or c.get("type", "number") != "number":
+                # the charged parameter must be a bounded number, checked before anything is reserved (adversarial audit
+                # 2026-10-26: an untyped, unbounded amount let a NaN reach the ledger)
+                raise PolicyError(f"rule {r['id']}: budget param {b['param']!r} needs a numeric constraint with a max")
         if "endpoint" in r and not (isinstance(r["endpoint"], str) and r["endpoint"]):
             raise PolicyError(f"rule {r['id']}: endpoint must be a name")
     policy.setdefault("observer_freshness_s", 60)

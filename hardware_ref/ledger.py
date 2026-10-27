@@ -25,6 +25,7 @@ the epoch is the digest of the loaded policy image, held in a register the host 
 """
 from __future__ import annotations
 
+import math
 import json
 import os
 import threading
@@ -180,6 +181,10 @@ class DurableState:
         one step under the lock, which is what makes two concurrent requests unable to both pass.
         """
         with self.lock:
+            # a NaN, an infinity or a non-number would pass every comparison and poison the total (adversarial audit
+            # 2026-10-26; the governor model's F03 fix, carried over)
+            if isinstance(amount, bool) or not isinstance(amount, (int, float)) or not math.isfinite(amount) or amount < 0:
+                return None
             use = self.usage(key, window_s, now)
             if use["committed"] + use["reserved"] + amount > limit:
                 return None
