@@ -121,8 +121,13 @@ class PolicyGate:
         name: str = "gate",
         key: SigningKey | None = None,
         store: StateStore | None = None,
+        default_endpoint: str = "endpoint",
     ):
         self.name = name
+        # Every ticket names exactly one endpoint (adversarial audit 3, porting the governor's F29 binding): the rule's
+        # own endpoint, or this gate's default endpoint when the rule names none. An endpoint refuses any ticket that
+        # does not name it, so a ticket minted for one payment service cannot be spent at another that holds the key.
+        self.default_endpoint = default_endpoint
         self.verifier = verifier
         self.governance = governance
         self.clock = clock
@@ -385,8 +390,7 @@ class PolicyGate:
             "issued_at": now,
             "expires_at": now + self.ticket_ttl,
         }
-        if "endpoint" in rule:
-            payload["endpoint"] = rule["endpoint"]
+        payload["endpoint"] = rule.get("endpoint") or self.default_endpoint
         budget = rule.get("budget")
         if budget is not None:
             amount = core["params"].get(budget["param"])

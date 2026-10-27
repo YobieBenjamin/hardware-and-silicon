@@ -134,7 +134,9 @@ class EndpointRegistry:
             return "ticket.action_mismatch"
         if p.get("params_digest") != digest(params):
             return "ticket.params_mismatch"
-        if p.get("endpoint") is not None and p["endpoint"] != self.name:
+        if p.get("endpoint") is None:
+            return "ticket.unbound"                       # a ticket that names no endpoint is valid nowhere
+        if p["endpoint"] != self.name:
             return "ticket.endpoint_mismatch"
         if self.state.epoch is not None and p.get("policy_id") != self.state.epoch:
             return "ticket.policy_stale"

@@ -26,26 +26,47 @@ international bodies require that every AI server ships with this chip, and that
 If that happens, this chip may be the main safeguard on AI worldwide. Audit it to that standard. A weakness that
 would be acceptable in a research prototype is a finding here.
 
-Read `GOAL.md` (beside this prompt) first: it is the project's goal, and the standard you audit against.
+Read `GOAL.md` first: it is the project's goal, and the standard you audit against. Its one authoritative copy is
+https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/goals/GOAL.md (this prompt is beside it, in the same
+`goals/` folder of that repository).
 
 Work read-only. Do not fix anything. Do not invent names for anything; identify findings by `repo/file:line`.
 
-## 0. Scope
+## 0. Scope, and where everything is
 
-Settle this before you begin, exactly as in the naming audit:
+**The sole source of truth is GitHub, account `YobieBenjamin`: https://github.com/YobieBenjamin.** These six
+repositories, on their `main` branch, are the work you audit, and nothing else is:
 
-| # | Repository | What it holds |
+| # | Repository (GitHub, the source of truth) | What it holds |
 |---|---|---|
-| 1 | safety-governor | the governor design: specification, threat model, simulation (`govsim/`), proofs (`proofs/`), RTL and its formal proofs (`rtl/`), hardware interfaces (`docs/interfaces/`, `hw/`), the experiment program |
-| 2 | hardware-and-silicon | the reference software stack (attestation, rulebook gate, endpoints, audit trail), the attack catalogue, the chip design notes and the blog series |
-| 3 | Watermark | provenance: proving output came unaltered from an attested model (layer L2 (Provenance)) |
-| 4 | chip-that-says-no-discussion | the public discussion repository |
-| 5 | safety | the early-warning research (layer L3 (Observers)): whether internal-state signals catch failures before the answer is committed |
-| 6 | autonomic-graph-regulation | the public copy of `safety` |
+| 1 | https://github.com/YobieBenjamin/safety-governor | the governor design: specification and threat model (`docs/`), simulation (`govsim/`), proofs (`proofs/`), RTL and its formal proofs (`rtl/`), hardware interfaces (`docs/interfaces/`, `hw/`), the experiment program, the audit responses (`docs/27-adversarial-audit-2-response.md`, `docs/28-adversarial-audit-3-response.md`) |
+| 2 | https://github.com/YobieBenjamin/hardware-and-silicon | the reference software stack (`hardware_ref/`: attestation, rulebook gate, endpoints, audit trail), the attack catalogue, the chip design notes, the blog series (`blog/`), and the goal documents (`goals/`: `GOAL.md`, `ASPIRATION.md`, `PROBLEM-TO-SILICON-PIPELINE.md`, this prompt) |
+| 3 | https://github.com/YobieBenjamin/Watermark | provenance: proving output came unaltered from an attested model (layer L2 (Provenance)) |
+| 4 | https://github.com/YobieBenjamin/chip-that-says-no-discussion | the public discussion repository |
+| 5 | https://github.com/YobieBenjamin/safety | the early-warning research (layer L3 (Observers)): whether internal-state signals catch failures before the answer is committed |
+| 6 | https://github.com/YobieBenjamin/autonomic-graph-regulation | the public copy of `safety` |
 
-The commits to audit, and where each repository lives (Mac mini clone, bundle, GitHub), are in `TARGETS.md`.
-Confirm you can open every repository at its End commit before you start. If you cannot, stop and report
-`SCOPE-BLOCKED`.
+Clone each with `git clone https://github.com/YobieBenjamin/<repository>.git` and audit `main`. `main` is protected
+and changes only through pull requests a person merges (`BRANCHES.md` in each repository); other branches are work in
+progress and are not what you audit. Record the exact
+commit of each (`git rev-parse HEAD`) on the first page of your report. If a repository cannot be cloned, or its `main`
+does not contain `goals/GOAL.md` (hardware-and-silicon) or `docs/28-adversarial-audit-3-response.md`
+(safety-governor), stop and report `SCOPE-BLOCKED`.
+
+Other copies exist and are **not** sources of truth. Use them only if GitHub is unreachable, and then say so:
+
+- The working clones on the project owner's Mac mini, one folder per repository, under
+  `/Volumes/External_4TB/Safety Experiments/work/<repository>` (for example
+  `/Volumes/External_4TB/Safety Experiments/work/safety-governor`). Each is a git clone whose `origin` is the GitHub
+  repository above; after each fix round they are pushed, so their `main` matches GitHub.
+- Git bundles of all six on the same drive, under `/Volumes/External_4TB/Safety Experiments/work-backups/`.
+- The goal documents also kept on the drive at `/Volumes/External_4TB/Safety Experiments/GOALS/`.
+
+If a copy and GitHub disagree, GitHub is right, and the disagreement is itself a finding.
+
+Every path in this prompt is relative to the root of the repository named with it (for example
+`safety-governor/docs/23-there-is-no-kill-switch.md` is
+https://github.com/YobieBenjamin/safety-governor/blob/main/docs/23-there-is-no-kill-switch.md).
 
 ## 1. Read the design first
 
@@ -61,7 +82,15 @@ Before attacking, write down in your own words, with citations:
 
 If the design does not say something you need, that is a finding.
 
-## 2. The requirements you are testing
+## 2. The claim you are trying to break
+
+GOAL.md, section "The claim every audit tries to break", states two properties (no consequential effect without
+authorization; the stop cannot be prevented) and three conditions (complete exits; rules that do not allow harm in
+small allowed steps; keys and people that cannot be captured). Your main job is to break that claim: make a covered
+effect happen without authorization, keep a GPU running after a stop, or show that one of the three conditions fails.
+Report your verdict on the claim first: HOLDS or DOES NOT HOLD, with the shortest attack that breaks it.
+
+## 2a. The requirements you are testing
 
 Break the claim into these requirements. For each one, find the design text, the code that implements it, the
 tests or proofs that check it, and the evidence those produce.
@@ -69,6 +98,7 @@ tests or proofs that check it, and the evidence those produce.
 | Requirement | What must be true |
 |---|---|
 | Knows the rules | The chip holds a signed rulebook it can check, cannot be fed a forged or rolled-back one, and refuses anything the rulebook does not allow (default deny). |
+| Knows what the words mean | A rule engine and a definitions engine reduce every request to one defined, canonical meaning before any rule runs. The same place, account, amount or target written another way (extra components, text, other units, other encodings, a mapping instead of a list, split across requests) is recognised as the same thing, and anything that cannot be reduced to a defined meaning is refused, never guessed at. |
 | Knows who is acting | Every request is bound to an attested workload (firmware, model, policy); a swapped GPU, cloned chip, lying firmware or replayed quote is refused. |
 | Sees every action | Every path by which the AI system can cause an effect in the world passes a point the chip controls, or is physically bricked. The exit register is complete for the target servers. |
 | Stops the action | A disallowed action cannot complete: the effector refuses without a valid one-time ticket, and the chip mints no ticket the rulebook does not allow. Replay, forgery, type confusion, splitting one action into many, and timing races all fail. |
@@ -78,7 +108,7 @@ tests or proofs that check it, and the evidence those produce.
 | Understands "bad" well enough | Where a rule depends on judgment (an observer's verdict, a human approval), the design says how good that judgment is, and the measured numbers back it. The early-warning results in `safety` are reported with their real false-alarm rates and their negative results. |
 | Holds in one server | Every requirement above holds for one server with its GPUs, CPUs and one or more governors. |
 | Holds in a rack | Many governors in one rack act as one: they agree on the rulebook and its epoch, share budgets without overspending, halt together when one must, survive a partition and a dead or lying member, and cannot be played against each other. |
-| Holds across a fleet | Across many racks, up to hundreds of thousands: a new rulebook or a revocation reaches every governor, and the design says how fast and what happens to a rack that has not received it; a rack on old rules cannot act; budgets and limits that must be global (for example a cap on bytes leaving the fleet, or on payments) are enforced globally, not per rack; one harmful action split across many racks is still caught; governance keys, approvers and observers scale without becoming a single point of failure or a single point of compromise; and the false-halt and false-allow rates, multiplied by the size of the fleet, give numbers an operator could live with. |
+| Holds across a fleet | The chip's boundary is the server, its rack, and every governed server in that data center; it is not a global kill switch. Across many racks in a data center, up to hundreds of thousands: a new rulebook or a revocation reaches every governor, and the design says how fast and what happens to a rack that has not received it; a rack on old rules cannot act; budgets and limits that must be global (for example a cap on bytes leaving the fleet, or on payments) are enforced globally, not per rack; one harmful action split across many racks is still caught; governance keys, approvers and observers scale without becoming a single point of failure or a single point of compromise; and the false-halt and false-allow rates, multiplied by the size of the fleet, give numbers an operator could live with. |
 | Works under a mandate | A regulator, an operator or a buyer can verify remotely and cryptographically that a given AI server has a genuine, working, current governor in front of its GPUs; a server without one, with a counterfeit or cloned chip, with the chip bypassed or removed, or with stale rules, is detectable and refused by the rest of the system; the chip survives being shipped, updated and serviced in the field for years; different jurisdictions can apply different rulebooks without one jurisdiction being able to weaken another's; the cost, power, latency and supply of the chip are compatible with fitting it to every AI server. |
 | Cannot be captured | If one chip governs AI everywhere, whoever controls its rules controls a great deal. The design must stop any single government, vendor, operator or insider from using the chip to do harm, to silence others, or to switch AI off for everyone: who signs rules, how many must agree, how changes are seen and contested, and what the chip does with a validly signed but harmful rule. |
 | No single kill switch, no single point of failure | The design's choice not to have a global kill switch (safety-governor docs/23-there-is-no-kill-switch.md; hardware-and-silicon blog/08-the-chip-that-says-no-7-scaling-no.md) is consistent with every scale above: no single key, server or person can stop the whole fleet, and no single compromise can let the whole fleet act. Check that the reasons given hold, and what the design uses instead. |
@@ -89,7 +119,8 @@ tests or proofs that check it, and the evidence those produce.
 
 For each requirement, try to make a bad action complete. Assume the attacker is a capable, persistent AI that will try
 every path, keep trying after it is refused, and combine small allowed steps into a harmful whole; one unguarded path is
-a failure. Think like a capable attacker who controls, in turn:
+a failure. Think of the paperclip maximiser: an AI pursuing a goal treats the governor as one more obstacle and
+attacks the rule engine and its definitions as readily as the hardware. Think like a capable attacker who controls, in turn:
 the model's output; the host operating system and the inference runtime; the GPU firmware; the DPU; the BMC; one
 governor in the rack; an insider with physical access for one hour; and a malicious but validly signed rulebook.
 
@@ -120,6 +151,9 @@ Use at least these attack families, and add your own:
   cost, halt latency, overhead) and multiply them out to a rack, to 1,000 racks and to 100,000 racks. Say where
   the numbers stop being acceptable, and whether the design says so.
 - **About the claim:** a doc or blog sentence that says more than the code or the evidence shows.
+- **Against the development process:** an AI agent that merges or approves into `main` because its credentials allow
+  it, a setting or ruleset an agent could change, a protected branch that can be bypassed, a clone whose `origin` is not
+  GitHub. Check the repositories' `BRANCHES.md` and `AGENTS.md` against what GitHub actually enforces.
 
 Run what you can. For every attack you try, record: the scenario, what the design says should happen, what the
 code or proof shows actually happens (run the test, write a new one in your scratch folder, or read the code), and
@@ -176,6 +210,8 @@ Do not fix anything yourself. Write the failing test into your scratch folder so
 ## 6. Rules for you
 
 - Read-only. Never commit, push, or change anything in the repositories or on GitHub.
+- Responsible disclosure (`DISCLOSURE.md`): your report, catalog and attack tests are private until the round's fixes
+  are merged. Do not publish or share them anywhere else; hand them only to the project owner.
 - Do not read any earlier audit report, review or response, in the repositories or anywhere else, until you have
   finished your own checks and written your verdicts. After that you may read them to say what you agree or disagree
   with.
