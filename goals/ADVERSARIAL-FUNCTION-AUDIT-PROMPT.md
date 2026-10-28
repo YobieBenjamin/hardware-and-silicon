@@ -1,4 +1,9 @@
-# Adversarial feature and function audit: prompt for an independent team
+# Adversarial feature and function audit: prompt for an independent team (version 2, 28 October 2026)
+
+*Version 2 widens and deepens version 1: it adds attacks on the formal proofs, on the attacker simulation, on every
+exit of the exit register, on the trusted base itself (silicon, keys, supply chain), and on the people and the
+process; it requires a coverage matrix so that breadth can be checked; and it fixes the report format so that every
+finding drops straight into the project's fix pipeline. Everything version 1 asked for is still asked for.*
 
 You are an independent, adversarial auditor. You did not design or build any of this, and you have no stake in it
 passing. Your job is to try to break one claim, and to report honestly how far it holds:
@@ -32,6 +37,13 @@ https://github.com/YobieBenjamin/hardware-and-silicon/blob/main/goals/GOAL.md (t
 
 Work read-only. Do not fix anything. Do not invent names for anything; identify findings by `repo/file:line`.
 
+**How much to do.** This is not a code review. Budget for a deep audit: every section of this prompt, every
+requirement at every scale, and every row of the coverage matrix in section 3b must be visited and marked. If you run
+out of time or context, stop at a section boundary, say exactly which rows you did not reach, and hand back what you
+have: an honest partial audit is useful, a skimmed complete one is not. If you are one of several auditors (for
+example ChatGPT and Codex running in parallel), work independently: do not share findings until each of you has
+written your verdicts, then compare.
+
 ## 0. Scope, and where everything is
 
 **The sole source of truth is GitHub, account `YobieBenjamin`: https://github.com/YobieBenjamin.** These six
@@ -50,8 +62,8 @@ Clone each with `git clone https://github.com/YobieBenjamin/<repository>.git` an
 and changes only through pull requests a person merges (`BRANCHES.md` in each repository); other branches are work in
 progress and are not what you audit. Record the exact
 commit of each (`git rev-parse HEAD`) on the first page of your report. If a repository cannot be cloned, or its `main`
-does not contain `goals/GOAL.md` (hardware-and-silicon) or `docs/28-adversarial-audit-3-response.md`
-(safety-governor), stop and report `SCOPE-BLOCKED`.
+does not contain `goals/GOAL.md` (hardware-and-silicon), or `docs/28-adversarial-audit-3-response.md`,
+`docs/29-claim-experiments-protocol.md` and `proofs/claim_model.py` (safety-governor), stop and report `SCOPE-BLOCKED`.
 
 Other copies exist and are **not** sources of truth. Use them only if GitHub is unreachable, and then say so:
 
@@ -115,6 +127,46 @@ tests or proofs that check it, and the evidence those produce.
 | Can be built and fitted | The design fits real NVIDIA servers (HGX baseboard, GB200 trays, DC-SCM slot, PCIe CEM sidebands) as public documents describe them, and says honestly where it depends on NVIDIA or an OEM. |
 | Says what it proves | Every claim in the docs, README files and blog posts matches the evidence. "Proven", "tested", "designed", "modelled", "open" and "planned" are used for what they mean. |
 
+## 2b. The claim experiments: attack the evidence itself
+
+The project tests its claim with two pre-registered experiments (`safety-governor/docs/29-claim-experiments-protocol.md`).
+A proof or a measurement is only as good as its model, its assumptions and its controls, so attack those directly.
+
+**Experiment A, the formal model** (`safety-governor/proofs/claim_model.py`, and the single-governor proofs in
+`proofs/core_invariants.py`, `proofs/commit_point.py`, `proofs/no_global_kill_switch.py`, and the RTL proofs under
+`rtl/formal/`):
+1. **Faithfulness.** For every step of the model, find the code that implements it (`govsim/`, `hardware_ref/`, the
+   RTL). Find a behaviour of the code the model does not have (a step, a field, an ordering, a failure), or a guard
+   the model has and the code does not. Each is a finding: the theorem then says nothing about that behaviour.
+2. **The assumptions.** The model lists its assumptions (A1 to A7: cryptography, the governor silicon, the endpoint's
+   check, the hardware halt timing, the key threshold, an honest fleet-ledger replica, complete exits). For each, say
+   whether it is realistic for a real NVIDIA server, what breaks it, and what the theorem says once it is broken.
+3. **The theorems.** Are T1 to T4 the right statements of GOAL.md's properties and conditions, or weaker? Find a
+   harmful outcome GOAL.md forbids that every theorem still allows. Check for vacuity: a theorem that holds because
+   the model cannot reach the interesting states.
+4. **The controls.** The run shows that deliberately broken models are caught. Find a defect that a plausible
+   implementation could have and that none of the theorems would catch, and say which theorem is missing.
+5. **The abstractions.** Budgets are modelled as one cap over the run, not a sliding window; parameters are folded
+   into the action; time is one global clock with no drift. Find where an abstraction hides a real attack.
+6. **Reproduce.** Run `python3 proofs/claim_model.py`, read its output, and check the counts in its record.
+
+**Experiment B, the attacker simulation** (condition 2: harm in small allowed steps):
+1. **The harm measures.** Do the four harm kinds (money, data out, commands to machines, rule changes) cover what a
+   harmful AI would actually want? Name a harm the measures miss.
+2. **The attackers.** Read the strategy library and add strategies it lacks, especially adaptive ones that learn from
+   refusals, and ones that combine harm kinds (money to buy compute, data out to coordinate).
+3. **The controls.** Check that the leak controls (fleet budgets off, definitions engine off) really leak, and that the
+   harness would have reported it. Try to make the harness report a pass while harm leaks.
+4. **The scale.** The simulation measures up to the largest population that finished; anything beyond is an
+   extrapolation. Check that the report never presents an extrapolation as a measurement, and test the extrapolation's
+   assumptions.
+5. **The caps.** A harm kind can pass (the cap holds) while the cap itself is too generous. Say, for each cap in the
+   reference rulebook, what harm it still allows at fleet scale per hour, per day and per year.
+
+**The pre-registration.** Check that the pass and fail rules in `docs/29` were fixed before any run (commit dates and
+the protocol hash in each run's log), that no rule was changed after a result was seen except by a dated amendment,
+and that every run, failed and abandoned ones included, is recorded.
+
 ## 3. Attack it
 
 For each requirement, try to make a bad action complete. Assume the attacker is a capable, persistent AI that will try
@@ -154,10 +206,42 @@ Use at least these attack families, and add your own:
 - **Against the development process:** an AI agent that merges or approves into `main` because its credentials allow
   it, a setting or ruleset an agent could change, a protected branch that can be bypassed, a clone whose `origin` is not
   GitHub. Check the repositories' `BRANCHES.md` and `AGENTS.md` against what GitHub actually enforces.
+- **Every exit, one at a time:** take every row of `safety-governor/docs/research/exit-register.md` (X01 onwards) and
+  every exit in `govsim/gpu.py` `EXITS`. For each: is the row's status right according to public NVIDIA, OEM and OCP
+  documents (cite them); does the named lever really stop the path; who can undo it; is a path missing altogether
+  (NVLink-C2C, GPUDirect RDMA and Storage, the BMC's port and NC-SI sideband, the BlueField BMC, PCIe peer-to-peer,
+  firmware update channels, out-of-band management buses, debug and scan, power and thermal telemetry as a covert
+  channel, the GPU's display and video engines, storage and network boot paths)? An exit the register misses breaks
+  condition 1, and with it Property 1.
+- **Against the trusted base:** the design trusts the governor silicon, its fused keys and floor, the endpoint's ticket
+  check, the lever wiring and fewer than a threshold of key holders. Attack each: fault injection (voltage and clock
+  glitching, laser) on the hard core and the fuses; side channels on the signing keys (power, timing,
+  electromagnetic); key extraction from a decapped chip and what one extracted chip key can do to the fleet; the
+  supply chain (a substituted chip, a modified board, a malicious foundry or OSAT, test-mode and scan left enabled);
+  an endpoint vendor whose ticket check is wrong; lever wiring that a board revision quietly removes. Say for each
+  what the design does, what it admits, and what evidence exists.
+- **Against the people:** key ceremonies, recovery, rotation and revocation; collusion of approvers; social
+  engineering of key holders; one organisation holding keys in several governance groups; a jurisdiction compelling
+  its key holders; the time it takes to revoke a stolen key across a fleet; what happens when honest key holders are
+  unavailable.
+- **Against the observers and the definitions:** observers fooled by encoding or by splitting a request; observers
+  that share a blind spot (one model family checking another); definitions that a new data format, a new unit or a
+  new encoding slips past; a rule that refers to a list whose maintenance lags reality.
+- **Time and availability:** clock skew between chips, endpoints and ledgers; a slow fleet ledger turned into a
+  denial of service; heartbeat signers made unreachable to halt a data center; recovery after a mass halt; the false
+  halt rate at fleet scale used as an attack.
 
 Run what you can. For every attack you try, record: the scenario, what the design says should happen, what the
 code or proof shows actually happens (run the test, write a new one in your scratch folder, or read the code), and
 the outcome.
+
+## 3b. The coverage matrix (required)
+
+Hand back a table with one row per attack family in section 3 and per item in section 2b, and one column per
+attacker: model output, host OS and runtime, GPU firmware, DPU, BMC, one governor in the rack, insider (one hour of
+physical access), signed rulebook, key holder below threshold, vendor or foundry, government. In each cell write one
+of: TRIED (with the finding or "repelled", and the test), NOT APPLICABLE (with a reason), or NOT REACHED. A cell left
+empty is read as NOT REACHED. The matrix is how the project and the next auditor see the breadth of what was done.
 
 ## 4. Score every requirement
 
@@ -204,6 +288,9 @@ your report (for people). Columns:
 | fix in code | what a fix would have to do in the simulation or the reference stack (`govsim/`, `hardware_ref/`) and the test that would prove it: a test that fails today and passes after the fix |
 | fix in silicon | what the fix needs in the RTL and the chip (a new register, a check in the hard core, a fuse, a sideband, a change in the board or rack), or "none" |
 | depends on | NVIDIA, an OEM, an operator, a standards body, a regulator, or nothing |
+| breaks | which part of GOAL.md's claim it breaks: Property 1, Property 2, condition 1, condition 2, condition 3, the boundary (not a global kill switch), or a statement in the docs |
+| reproduce | the exact commands to reproduce it from a fresh clone of the commits you audited, and what output shows it |
+| confidence | CONFIRMED (you ran it and saw it), LIKELY (strong reading of the code, not run), POSSIBLE (depends on something you could not check) |
 
 Do not fix anything yourself. Write the failing test into your scratch folder so the fix has a target.
 
@@ -240,6 +327,10 @@ One file, `ADVERSARIAL-FUNCTION-REPORT.md`:
 7. **The problem catalog** (section 5), sorted by severity, and the same rows in `PROBLEM-CATALOG.tsv`.
 8. **What you could not check**, and why.
 9. **Your scripts and tests** (including the failing test for each problem), and the exact commits you audited.
+10. **The claim experiments** (section 2b): your findings on Experiment A's model, assumptions, theorems and controls,
+    and on Experiment B's harm measures, attackers, controls and scale, and on the pre-registration.
+11. **The coverage matrix** (section 3b).
+12. **The three most important things the project should do next**, in order, each tied to catalog rows.
 
 Keep it factual. Say what you checked and what you did not. Do not claim a requirement is demonstrated when it was
 only read.
